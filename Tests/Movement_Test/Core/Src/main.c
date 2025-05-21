@@ -63,7 +63,17 @@ static void MX_TIM4_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void Set_Servo_Angle (TIM_HandleTypeDef *htim, uint8_t channel, uint8_t angle)
+{
+	//MCU clock freq - 84Mhz and prescaler = 200
+	//TIM_CLK = 84000000 / 200 = 420000 Hz = 2.38 us
+	//0.5 ms <=> 0 degrees => 500 / 2.38 = 210 counts
+	//2.5 ms <=> 180 degrees => 2500 / 2.38 = 1050 counts
 
+	uint8_t pulse_length = 210 + (angle * (1050 - 210 )/180);
+
+	__HAL_TIM_SET_COMPARE(htim, channel, pulse_length);
+}
 /* USER CODE END 0 */
 
 /**
