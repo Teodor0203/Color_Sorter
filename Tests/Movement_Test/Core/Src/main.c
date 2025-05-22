@@ -47,7 +47,12 @@ TIM_HandleTypeDef htim4;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+uint8_t current_value_base = 0;
+uint8_t current_value_shoulder = 90;
+uint8_t current_value_elbow = 165;
+uint8_t current_value_wrist_ver = 180;
+uint8_t current_value_wrist_rot = 90;
+uint8_t current_value_gripper = 10;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -70,9 +75,94 @@ void Set_Servo_Angle (TIM_HandleTypeDef *htim, uint8_t channel, uint8_t angle)
 	//0.5 ms <=> 0 degrees => 500 / 2.38 = 210 counts
 	//2.5 ms <=> 180 degrees => 2500 / 2.38 = 1050 counts
 
-	uint8_t pulse_length = 210 + (angle * (1050 - 210 )/180);
+	uint32_t pulse_length = 210 + (angle * (1050 - 210 )/180);
 
 	__HAL_TIM_SET_COMPARE(htim, channel, pulse_length);
+}
+
+
+//	  step_base = 0;
+//	  step_shoulder = 40;
+//	  step_elbow = 180;
+//	  step_wrist_ver = 170;
+//	  step_wrist_rot = 0;
+//	  step_gripper = 73;
+
+void init_arm ()
+{
+	Set_Servo_Angle(&htim2, TIM_CHANNEL_1, current_value_base);
+    HAL_Delay(250);
+
+	Set_Servo_Angle(&htim4, TIM_CHANNEL_1, current_value_shoulder + 45);
+    HAL_Delay(250);
+
+	Set_Servo_Angle(&htim3, TIM_CHANNEL_2, current_value_elbow);
+    HAL_Delay(250);
+
+	Set_Servo_Angle(&htim2, TIM_CHANNEL_3, current_value_wrist_ver);
+    HAL_Delay(250);
+
+	Set_Servo_Angle(&htim3, TIM_CHANNEL_1, current_value_wrist_rot);
+    HAL_Delay(250);
+
+	Set_Servo_Angle(&htim2, TIM_CHANNEL_2, current_value_gripper);
+    HAL_Delay(250);
+}
+void move_base (uint8_t angle)
+{
+    current_value_base = (angle > current_value_base) ? current_value_base++ : current_value_base--;
+
+	Set_Servo_Angle(&htim2, TIM_CHANNEL_1, current_value_base);
+    HAL_Delay(100);
+}
+
+void move_shoulder (uint8_t angle)
+{
+	current_value_shoulder = (angle > current_value_shoulder) ? current_value_shoulder++ : current_value_shoulder--;
+
+	Set_Servo_Angle(&htim4, TIM_CHANNEL_1, current_value_shoulder + 45);
+    HAL_Delay(100);
+}
+
+void move_elbow (uint8_t angle)
+{
+	int temp = current_value_elbow;
+
+	while(current_value_elbow != angle)
+	{
+		if(temp > angle)
+		{
+			temp--;
+		}
+		else
+		{
+			temp++;
+		}
+		Set_Servo_Angle(&htim3, TIM_CHANNEL_2, temp);
+	    HAL_Delay(25);
+	}
+
+	current_value_elbow = temp;
+}
+
+void move_wrist_ver (uint8_t angle)
+{
+	current_value_wrist_ver = (angle > current_value_wrist_ver) ? current_value_wrist_ver++ : current_value_wrist_ver--;
+	 Set_Servo_Angle(&htim2, TIM_CHANNEL_3, current_value_wrist_ver);
+     HAL_Delay(100);
+}
+void move_wrist_rot (uint8_t angle)
+{
+	current_value_wrist_rot = (angle > current_value_wrist_rot) ? current_value_wrist_rot++ : current_value_wrist_rot--;
+	Set_Servo_Angle(&htim3, TIM_CHANNEL_1, current_value_wrist_rot);
+    HAL_Delay(100);
+}
+
+void move_gripper (uint8_t angle)
+{
+	current_value_gripper = (angle > current_value_gripper) ? current_value_gripper++ : current_value_gripper--;
+	Set_Servo_Angle(&htim2, TIM_CHANNEL_2, current_value_gripper); //gripper
+    HAL_Delay(100);
 }
 /* USER CODE END 0 */
 
@@ -112,49 +202,30 @@ int main(void)
 
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 1);
 
+#define base_motor  &htim2
+#define base_motor_channel TIM_CHANNEL_1
+#define shoulder_motor &htim4
+#define shoulder_motor_channel TIM_CHANNEL_1
+#define elbow_motor &htim3
+#define elbow_motor_channel TIM_CHANNEL_2
+#define wrist_ver_motor &htim2
+#define wrist_ver_motor_channel TIM_CHANNEL_3
+#define wrist_rot_motor &htim3
+#
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); // A0  - M1
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1); // D10 - M2
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); // D9  - M3
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3); // D6  - M4
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); // D5  - M5
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2); // D3  - M6
+  	  	  	  	  	  	  	  	  	  	  	// Gripper 0 - deschis maxim,
 
   /* USER CODE BEGIN 2 */
-  for(uint8_t angle = 0; angle <= 180; angle += 10)
-  	  {
-  	      Set_Servo_Angle(&htim2, TIM_CHANNEL_1, angle);
-  	      HAL_Delay(500);
-  	  }
 
-  	  for(uint8_t angle = 180; angle >0; angle -= 10)
-  	  {
-  	      Set_Servo_Angle(&htim2, TIM_CHANNEL_2, angle);
-  	      HAL_Delay(500);
-  	  }
+  init_arm();
 
-  	  for(uint8_t angle = 0; angle <= 180; angle += 10)
-  	  {
-  	      Set_Servo_Angle(&htim2, TIM_CHANNEL_3, angle);
-  	      HAL_Delay(500);
-  	  }
 
-  	  for(uint8_t angle = 180; angle >0; angle -= 10)
-  	  {
-  	      Set_Servo_Angle(&htim3, TIM_CHANNEL_1, angle);
-  	      HAL_Delay(500);
-  	  }
-
-  	  for(uint8_t angle = 0; angle <= 180; angle += 10)
-  	  {
-  	      Set_Servo_Angle(&htim3, TIM_CHANNEL_2, angle);
-  	      HAL_Delay(500);
-  	  }
-
-  	  for(uint8_t angle = 180; angle >0; angle -= 10)
-  	  {
-  	      Set_Servo_Angle(&htim4, TIM_CHANNEL_1, angle);
-  	      HAL_Delay(500);
-  	  }
+  move_elbow(90);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -164,6 +235,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+
   }
   /* USER CODE END 3 */
 }
