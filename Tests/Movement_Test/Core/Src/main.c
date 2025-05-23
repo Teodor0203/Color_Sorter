@@ -31,7 +31,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define BUFFER_LEN 128
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -44,6 +44,7 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
+UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
@@ -53,6 +54,8 @@ uint8_t current_value_elbow = 165;
 uint8_t current_value_wrist_ver = 180;
 uint8_t current_value_wrist_rot = 90;
 uint8_t current_value_gripper = 10;
+
+uint8_t RX_BUFFER[BUFFER_LEN] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -62,6 +65,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -80,13 +84,6 @@ void Set_Servo_Angle (TIM_HandleTypeDef *htim, uint8_t channel, uint8_t angle)
 	__HAL_TIM_SET_COMPARE(htim, channel, pulse_length);
 }
 
-
-//	  step_base = 0;
-//	  step_shoulder = 40;
-//	  step_elbow = 180;
-//	  step_wrist_ver = 170;
-//	  step_wrist_rot = 0;
-//	  step_gripper = 73;
 
 void init_arm ()
 {
@@ -108,61 +105,112 @@ void init_arm ()
 	Set_Servo_Angle(&htim2, TIM_CHANNEL_2, current_value_gripper);
     HAL_Delay(250);
 }
+
 void move_base (uint8_t angle)
 {
-    current_value_base = (angle > current_value_base) ? current_value_base++ : current_value_base--;
+    while(current_value_base != angle)
+        	{
+        		if(current_value_base > angle)
+        		{
+        			current_value_base--;
+        		}
+        		else
+        		{
+        			current_value_base++;
+        		}
 
-	Set_Servo_Angle(&htim2, TIM_CHANNEL_1, current_value_base);
-    HAL_Delay(100);
+        		Set_Servo_Angle(&htim2, TIM_CHANNEL_1, current_value_base);
+        	    HAL_Delay(25);
+        	}
 }
 
 void move_shoulder (uint8_t angle)
 {
-	current_value_shoulder = (angle > current_value_shoulder) ? current_value_shoulder++ : current_value_shoulder--;
+    while((current_value_shoulder + 45) != angle)
+    	{
+    		if((current_value_shoulder + 45) > angle)
+    		{
+    			current_value_shoulder--;
+    		}
+    		else
+    		{
+    			current_value_shoulder++;
+    		}
 
-	Set_Servo_Angle(&htim4, TIM_CHANNEL_1, current_value_shoulder + 45);
-    HAL_Delay(100);
+    		Set_Servo_Angle(&htim4, TIM_CHANNEL_1, (current_value_shoulder + 45));
+    	    HAL_Delay(25);
+    	}
 }
 
 void move_elbow (uint8_t angle)
 {
-	int temp = current_value_elbow;
-
 	while(current_value_elbow != angle)
 	{
-		if(temp > angle)
+		if(current_value_elbow > angle)
 		{
-			temp--;
+			current_value_elbow--;
 		}
 		else
 		{
-			temp++;
+			current_value_elbow++;
 		}
-		Set_Servo_Angle(&htim3, TIM_CHANNEL_2, temp);
+
+		Set_Servo_Angle(&htim3, TIM_CHANNEL_2, current_value_elbow);
 	    HAL_Delay(25);
 	}
-
-	current_value_elbow = temp;
 }
 
 void move_wrist_ver (uint8_t angle)
 {
-	current_value_wrist_ver = (angle > current_value_wrist_ver) ? current_value_wrist_ver++ : current_value_wrist_ver--;
-	 Set_Servo_Angle(&htim2, TIM_CHANNEL_3, current_value_wrist_ver);
-     HAL_Delay(100);
+     while(current_value_wrist_ver != angle)
+     	{
+     		if(current_value_wrist_ver > angle)
+     		{
+     			current_value_wrist_ver--;
+     		}
+     		else
+     		{
+     			current_value_wrist_ver++;
+     		}
+
+     		Set_Servo_Angle(&htim2, TIM_CHANNEL_3, current_value_wrist_ver);
+     	    HAL_Delay(25);
+     	}
 }
 void move_wrist_rot (uint8_t angle)
 {
-	current_value_wrist_rot = (angle > current_value_wrist_rot) ? current_value_wrist_rot++ : current_value_wrist_rot--;
-	Set_Servo_Angle(&htim3, TIM_CHANNEL_1, current_value_wrist_rot);
-    HAL_Delay(100);
+    while(current_value_wrist_rot != angle)
+        	{
+        		if(current_value_wrist_rot > angle)
+        		{
+        			current_value_wrist_rot--;
+        		}
+        		else
+        		{
+        			current_value_wrist_rot++;
+        		}
+
+        		Set_Servo_Angle(&htim3, TIM_CHANNEL_1, current_value_wrist_rot);
+        	    HAL_Delay(25);
+        	}
 }
 
 void move_gripper (uint8_t angle)
 {
-	current_value_gripper = (angle > current_value_gripper) ? current_value_gripper++ : current_value_gripper--;
-	Set_Servo_Angle(&htim2, TIM_CHANNEL_2, current_value_gripper); //gripper
-    HAL_Delay(100);
+    while(current_value_gripper != angle)
+            	{
+            		if(current_value_gripper > angle)
+            		{
+            			current_value_gripper--;
+            		}
+            		else
+            		{
+            			current_value_gripper++;
+            		}
+
+            		Set_Servo_Angle(&htim2, TIM_CHANNEL_2, current_value_gripper);
+            	    HAL_Delay(25);
+            	}
 }
 /* USER CODE END 0 */
 
@@ -199,33 +247,33 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
+  MX_USART1_UART_Init();
+  /* USER CODE BEGIN 2 */
 
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 1);
 
-#define base_motor  &htim2
-#define base_motor_channel TIM_CHANNEL_1
-#define shoulder_motor &htim4
-#define shoulder_motor_channel TIM_CHANNEL_1
-#define elbow_motor &htim3
-#define elbow_motor_channel TIM_CHANNEL_2
-#define wrist_ver_motor &htim2
-#define wrist_ver_motor_channel TIM_CHANNEL_3
-#define wrist_rot_motor &htim3
-#
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); // A0  - M1
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1); // D10 - M2
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); // D9  - M3
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3); // D6  - M4
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); // D5  - M5
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2); // D3  - M6
-  	  	  	  	  	  	  	  	  	  	  	// Gripper 0 - deschis maxim,
 
-  /* USER CODE BEGIN 2 */
 
   init_arm();
 
 
   move_elbow(90);
+
+  move_base(45);
+
+  move_shoulder(45);
+
+  move_wrist_ver(70);
+
+  move_wrist_rot(45);
+
+  move_gripper(30);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -473,6 +521,39 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 2 */
   HAL_TIM_MspPostInit(&htim4);
+
+}
+
+/**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 9600;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
 
 }
 

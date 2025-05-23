@@ -107,6 +107,12 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); // A0  - M1
+    HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1); // D10 - M2
+    HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); // D9  - M3
+    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3); // D6  - M4
+    HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); // D5  - M5
+    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2); // D3  - M6
   /* USER CODE END 2 */
 
   /* Infinite loop */
