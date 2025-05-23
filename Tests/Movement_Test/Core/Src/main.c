@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "arm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,12 +48,6 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-uint8_t current_value_base = 0;
-uint8_t current_value_shoulder = 90;
-uint8_t current_value_elbow = 165;
-uint8_t current_value_wrist_ver = 180;
-uint8_t current_value_wrist_rot = 90;
-uint8_t current_value_gripper = 10;
 
 uint8_t RX_BUFFER[BUFFER_LEN] = {0};
 /* USER CODE END PV */
@@ -72,39 +66,8 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void Set_Servo_Angle (TIM_HandleTypeDef *htim, uint8_t channel, uint8_t angle)
-{
-	//MCU clock freq - 84Mhz and prescaler = 200
-	//TIM_CLK = 84000000 / 200 = 420000 Hz = 2.38 us
-	//0.5 ms <=> 0 degrees => 500 / 2.38 = 210 counts
-	//2.5 ms <=> 180 degrees => 2500 / 2.38 = 1050 counts
 
-	uint32_t pulse_length = 210 + (angle * (1050 - 210 )/180);
-
-	__HAL_TIM_SET_COMPARE(htim, channel, pulse_length);
-}
-
-
-void init_arm ()
-{
-	Set_Servo_Angle(&htim2, TIM_CHANNEL_1, current_value_base);
-    HAL_Delay(250);
-
-	Set_Servo_Angle(&htim4, TIM_CHANNEL_1, current_value_shoulder + 45);
-    HAL_Delay(250);
-
-	Set_Servo_Angle(&htim3, TIM_CHANNEL_2, current_value_elbow);
-    HAL_Delay(250);
-
-	Set_Servo_Angle(&htim2, TIM_CHANNEL_3, current_value_wrist_ver);
-    HAL_Delay(250);
-
-	Set_Servo_Angle(&htim3, TIM_CHANNEL_1, current_value_wrist_rot);
-    HAL_Delay(250);
-
-	Set_Servo_Angle(&htim2, TIM_CHANNEL_2, current_value_gripper);
-    HAL_Delay(250);
-}
+/* MOOVE ARM
 
 void move_base (uint8_t angle)
 {
@@ -212,6 +175,8 @@ void move_gripper (uint8_t angle)
             	    HAL_Delay(25);
             	}
 }
+*/
+
 /* USER CODE END 0 */
 
 /**
@@ -250,20 +215,11 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 1);
+  Init_arm();
 
-  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); // A0  - M1
-  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1); // D10 - M2
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); // D9  - M3
-  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3); // D6  - M4
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); // D5  - M5
-  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2); // D3  - M6
+  MoveArm(45, 45, 90, 70, 45, 30);
 
-
-  init_arm();
-
-
-  move_elbow(90);
+/*  move_elbow(90);
 
   move_base(45);
 
@@ -273,7 +229,8 @@ int main(void)
 
   move_wrist_rot(45);
 
-  move_gripper(30);
+  move_gripper(30);*/
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
