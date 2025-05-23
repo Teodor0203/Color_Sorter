@@ -1,7 +1,4 @@
 #include "arm.h"
-#include "main.h"
-#include "stdint.h"
-#include "stm32f4xx_hal.h"
 
 static uint8_t current_value_base = 90;
 static uint8_t current_value_shoulder = 90;

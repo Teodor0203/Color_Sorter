@@ -27,25 +27,25 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  11 .ARM.attributes 00000030  00000000  00000000  00005014  2**0
                   CONTENTS, READONLY
- 12 .debug_info   0000d350  00000000  00000000  00005044  2**0
+ 12 .debug_info   0000d354  00000000  00000000  00005044  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 00001d9d  00000000  00000000  00012394  2**0
+ 13 .debug_abbrev 00001d9b  00000000  00000000  00012398  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  14 .debug_aranges 00000c60  00000000  00000000  00014138  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  15 .debug_rnglists 000009b8  00000000  00000000  00014d98  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_macro  00015a65  00000000  00000000  00015750  2**0
+ 16 .debug_macro  00015a0a  00000000  00000000  00015750  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   0000e069  00000000  00000000  0002b1b5  2**0
+ 17 .debug_line   0000e061  00000000  00000000  0002b15a  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    0008aa67  00000000  00000000  0003921e  2**0
+ 18 .debug_str    0008aa67  00000000  00000000  000391bb  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000043  00000000  00000000  000c3c85  2**0
+ 19 .comment      00000043  00000000  00000000  000c3c22  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  00003414  00000000  00000000  000c3cc8  2**2
+ 20 .debug_frame  00003414  00000000  00000000  000c3c68  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_line_str 00000063  00000000  00000000  000c70dc  2**0
+ 21 .debug_line_str 00000063  00000000  00000000  000c707c  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -597,7 +597,8 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
  800068e:	79fa      	ldrb	r2, [r7, #7]
  8000690:	429a      	cmp	r2, r3
  8000692:	d206      	bcs.n	80006a2 <MoveArm+0x46>
-                current_value_base--;
+            {
+            	current_value_base--;
  8000694:	4b71      	ldr	r3, [pc, #452]	@ (800085c <MoveArm+0x200>)
  8000696:	781b      	ldrb	r3, [r3, #0]
  8000698:	3b01      	subs	r3, #1
@@ -605,14 +606,17 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
  800069c:	4b6f      	ldr	r3, [pc, #444]	@ (800085c <MoveArm+0x200>)
  800069e:	701a      	strb	r2, [r3, #0]
  80006a0:	e005      	b.n	80006ae <MoveArm+0x52>
+            }
             else
-                current_value_base++;
+            {
+            	current_value_base++;
  80006a2:	4b6e      	ldr	r3, [pc, #440]	@ (800085c <MoveArm+0x200>)
  80006a4:	781b      	ldrb	r3, [r3, #0]
  80006a6:	3301      	adds	r3, #1
  80006a8:	b2da      	uxtb	r2, r3
  80006aa:	4b6c      	ldr	r3, [pc, #432]	@ (800085c <MoveArm+0x200>)
  80006ac:	701a      	strb	r2, [r3, #0]
+            }
 
             Set_Servo_Angle(&htim2, TIM_CHANNEL_1, current_value_base);
  80006ae:	4b6b      	ldr	r3, [pc, #428]	@ (800085c <MoveArm+0x200>)
@@ -638,7 +642,8 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
  80006d2:	79bb      	ldrb	r3, [r7, #6]
  80006d4:	429a      	cmp	r2, r3
  80006d6:	db06      	blt.n	80006e6 <MoveArm+0x8a>
-                current_value_shoulder--;
+            {
+            	current_value_shoulder--;
  80006d8:	4b62      	ldr	r3, [pc, #392]	@ (8000864 <MoveArm+0x208>)
  80006da:	781b      	ldrb	r3, [r3, #0]
  80006dc:	3b01      	subs	r3, #1
@@ -646,14 +651,17 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
  80006e0:	4b60      	ldr	r3, [pc, #384]	@ (8000864 <MoveArm+0x208>)
  80006e2:	701a      	strb	r2, [r3, #0]
  80006e4:	e005      	b.n	80006f2 <MoveArm+0x96>
+            }
             else
-                current_value_shoulder++;
+            {
+            	current_value_shoulder++;
  80006e6:	4b5f      	ldr	r3, [pc, #380]	@ (8000864 <MoveArm+0x208>)
  80006e8:	781b      	ldrb	r3, [r3, #0]
  80006ea:	3301      	adds	r3, #1
  80006ec:	b2da      	uxtb	r2, r3
  80006ee:	4b5d      	ldr	r3, [pc, #372]	@ (8000864 <MoveArm+0x208>)
  80006f0:	701a      	strb	r2, [r3, #0]
+            }
 
             Set_Servo_Angle(&htim4, TIM_CHANNEL_1, current_value_shoulder + 45);
  80006f2:	4b5c      	ldr	r3, [pc, #368]	@ (8000864 <MoveArm+0x208>)
@@ -679,7 +687,8 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
  8000712:	797a      	ldrb	r2, [r7, #5]
  8000714:	429a      	cmp	r2, r3
  8000716:	d206      	bcs.n	8000726 <MoveArm+0xca>
-                current_value_elbow--;
+            {
+            	current_value_elbow--;
  8000718:	4b54      	ldr	r3, [pc, #336]	@ (800086c <MoveArm+0x210>)
  800071a:	781b      	ldrb	r3, [r3, #0]
  800071c:	3b01      	subs	r3, #1
@@ -687,14 +696,17 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
  8000720:	4b52      	ldr	r3, [pc, #328]	@ (800086c <MoveArm+0x210>)
  8000722:	701a      	strb	r2, [r3, #0]
  8000724:	e005      	b.n	8000732 <MoveArm+0xd6>
+            }
             else
-                current_value_elbow++;
+            {
+            	current_value_elbow++;
  8000726:	4b51      	ldr	r3, [pc, #324]	@ (800086c <MoveArm+0x210>)
  8000728:	781b      	ldrb	r3, [r3, #0]
  800072a:	3301      	adds	r3, #1
  800072c:	b2da      	uxtb	r2, r3
  800072e:	4b4f      	ldr	r3, [pc, #316]	@ (800086c <MoveArm+0x210>)
  8000730:	701a      	strb	r2, [r3, #0]
+            }
 
             Set_Servo_Angle(&htim3, TIM_CHANNEL_2, current_value_elbow);
  8000732:	4b4e      	ldr	r3, [pc, #312]	@ (800086c <MoveArm+0x210>)
@@ -718,7 +730,8 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
  800074e:	793a      	ldrb	r2, [r7, #4]
  8000750:	429a      	cmp	r2, r3
  8000752:	d206      	bcs.n	8000762 <MoveArm+0x106>
-                current_value_wrist_ver--;
+            {
+            	current_value_wrist_ver--;
  8000754:	4b47      	ldr	r3, [pc, #284]	@ (8000874 <MoveArm+0x218>)
  8000756:	781b      	ldrb	r3, [r3, #0]
  8000758:	3b01      	subs	r3, #1
@@ -726,14 +739,17 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
  800075c:	4b45      	ldr	r3, [pc, #276]	@ (8000874 <MoveArm+0x218>)
  800075e:	701a      	strb	r2, [r3, #0]
  8000760:	e005      	b.n	800076e <MoveArm+0x112>
+            }
             else
-                current_value_wrist_ver++;
+            {
+            	current_value_wrist_ver++;
  8000762:	4b44      	ldr	r3, [pc, #272]	@ (8000874 <MoveArm+0x218>)
  8000764:	781b      	ldrb	r3, [r3, #0]
  8000766:	3301      	adds	r3, #1
  8000768:	b2da      	uxtb	r2, r3
  800076a:	4b42      	ldr	r3, [pc, #264]	@ (8000874 <MoveArm+0x218>)
  800076c:	701a      	strb	r2, [r3, #0]
+            }
 
             Set_Servo_Angle(&htim2, TIM_CHANNEL_3, current_value_wrist_ver);
  800076e:	4b41      	ldr	r3, [pc, #260]	@ (8000874 <MoveArm+0x218>)
@@ -757,7 +773,8 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
  800078c:	f897 2020 	ldrb.w	r2, [r7, #32]
  8000790:	429a      	cmp	r2, r3
  8000792:	d206      	bcs.n	80007a2 <MoveArm+0x146>
-                current_value_wrist_rot--;
+            {
+            	current_value_wrist_rot--;
  8000794:	4b38      	ldr	r3, [pc, #224]	@ (8000878 <MoveArm+0x21c>)
  8000796:	781b      	ldrb	r3, [r3, #0]
  8000798:	3b01      	subs	r3, #1
@@ -765,6 +782,7 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
  800079c:	4b36      	ldr	r3, [pc, #216]	@ (8000878 <MoveArm+0x21c>)
  800079e:	701a      	strb	r2, [r3, #0]
  80007a0:	e005      	b.n	80007ae <MoveArm+0x152>
+            }
             else
                 current_value_wrist_rot++;
  80007a2:	4b35      	ldr	r3, [pc, #212]	@ (8000878 <MoveArm+0x21c>)
@@ -796,7 +814,8 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
  80007cc:	f897 2024 	ldrb.w	r2, [r7, #36]	@ 0x24
  80007d0:	429a      	cmp	r2, r3
  80007d2:	d206      	bcs.n	80007e2 <MoveArm+0x186>
-                current_value_gripper--;
+            {
+            	current_value_gripper--;
  80007d4:	4b29      	ldr	r3, [pc, #164]	@ (800087c <MoveArm+0x220>)
  80007d6:	781b      	ldrb	r3, [r3, #0]
  80007d8:	3b01      	subs	r3, #1
@@ -804,14 +823,17 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
  80007dc:	4b27      	ldr	r3, [pc, #156]	@ (800087c <MoveArm+0x220>)
  80007de:	701a      	strb	r2, [r3, #0]
  80007e0:	e005      	b.n	80007ee <MoveArm+0x192>
+            }
             else
-                current_value_gripper++;
+            {
+            	current_value_gripper++;
  80007e2:	4b26      	ldr	r3, [pc, #152]	@ (800087c <MoveArm+0x220>)
  80007e4:	781b      	ldrb	r3, [r3, #0]
  80007e6:	3301      	adds	r3, #1
  80007e8:	b2da      	uxtb	r2, r3
  80007ea:	4b24      	ldr	r3, [pc, #144]	@ (800087c <MoveArm+0x220>)
  80007ec:	701a      	strb	r2, [r3, #0]
+            }
 
             Set_Servo_Angle(&htim2, TIM_CHANNEL_2, current_value_gripper);
  80007ee:	4b23      	ldr	r3, [pc, #140]	@ (800087c <MoveArm+0x220>)
