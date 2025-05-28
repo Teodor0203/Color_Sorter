@@ -40,15 +40,16 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-TIM_HandleTypeDef htim2;
-TIM_HandleTypeDef htim3;
-TIM_HandleTypeDef htim4;
-
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+static uint8_t current_value_base = 90;
+static uint8_t current_value_shoulder = 90;
+static uint8_t current_value_elbow = 90;
+static uint8_t current_value_wrist_ver = 90;
+static uint8_t current_value_wrist_rot = 90;
+static uint8_t current_value_gripper = 90;
 uint8_t RX_BUFFER[BUFFER_LEN] = {0};
 /* USER CODE END PV */
 
@@ -67,7 +68,7 @@ static void MX_USART1_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-/* MOOVE ARM
+
 
 void move_base (uint8_t angle)
 {
@@ -175,7 +176,6 @@ void move_gripper (uint8_t angle)
             	    HAL_Delay(25);
             	}
 }
-*/
 
 /* USER CODE END 0 */
 
@@ -214,11 +214,9 @@ int main(void)
   MX_TIM4_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-
   Init_arm();
 
-  MoveArm(45, 45, 90, 70, 45, 30);
-
+  MoveArm(45, 90, 45, 70, 45, 30);
 /*  move_elbow(90);
 
   move_base(45);

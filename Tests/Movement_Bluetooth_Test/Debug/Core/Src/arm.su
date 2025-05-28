@@ -1,0 +1,3 @@
+../Core/Src/arm.c:14:6:Set_Servo_Angle	32	static
+../Core/Src/arm.c:20:6:Init_arm	8	static
+../Core/Src/arm.c:52:6:MoveArm	32	static
