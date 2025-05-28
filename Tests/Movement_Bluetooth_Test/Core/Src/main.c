@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -27,12 +28,13 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+struct ThreeBitValue {
+	unsigned int value : 3;
+};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define BUFFER_LEN 128
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -44,18 +46,43 @@
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
+/* Definitions for bluetooth */
+osThreadId_t bluetoothHandle;
+const osThreadAttr_t bluetooth_attributes = {
+  .name = "bluetooth",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for moveRobotArm */
+osThreadId_t moveRobotArmHandle;
+const osThreadAttr_t moveRobotArm_attributes = {
+  .name = "moveRobotArm",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for colorSensor */
+osThreadId_t colorSensorHandle;
+const osThreadAttr_t colorSensor_attributes = {
+  .name = "colorSensor",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* USER CODE BEGIN PV */
+struct ThreeBitValue index_buffer_write;
+struct ThreeBitValue index_buffer_read;
 
+int is_buffer_full = 0;
 uint8_t buffer_q[8][21];
-int index_buffer;
 uint8_t buffer[21];
 
-uint8_t base;
-uint8_t shoulder;
-uint8_t elbow;
-uint8_t wrist_pitch;
-uint8_t wrist_roll;
+uint8_t base_angle;
+uint8_t shoulder_angle;
+uint8_t elbow_angle;
+uint8_t wrist_ver_angle;
+uint8_t wrist_rot_angle;
 uint8_t detected_class;
+
+int move_arm = 0;
 
 /* USER CODE END PV */
 
@@ -67,6 +94,10 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_USART1_UART_Init(void);
+void BluetoothTask(void *argument);
+void MoveRobotArmTask(void *argument);
+void ColorSensorTask(void *argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -77,45 +108,48 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	if (huart->Instance == USART1) {
 	        char response_msg[100];
 	        char temp_buffer[21]; // Create a copy if you need to preserve the original
-	        strcpy(temp_buffer, buffer); // Copy the original string
-
 	        for(int i = 0; i < 21; i++)
-	        	buffer_q[index_buffer][i] = buffer[i];
+	       	        	buffer_q[index_buffer_write.value][i] = buffer[i];
 
-	        if(++index_buffer == 8)
-	        	index_buffer = 0;
+	        strcpy(temp_buffer, buffer_q[index_buffer_read.value]); // Copy the original string
 
+
+
+	        if(++index_buffer_write.value == index_buffer_read.value){
+	        	is_buffer_full = 1;
+	        }
 	        char *token;
 
 	            token = strtok(temp_buffer, ",");
 	            if (token != NULL) {
-	                base = atoi(token);
+	                base_angle = atoi(token);
 	            }
 
 	            token = strtok(NULL, ",");
 	            if (token != NULL) {
-	                shoulder = atoi(token);
+	                shoulder_angle = atoi(token);
 	            }
 
 	            token = strtok(NULL, ",");
 	            if (token != NULL) {
-	                elbow = atoi(token);
+	                elbow_angle = atoi(token);
 	            }
 
 	            token = strtok(NULL, ",");
 	            if (token != NULL) {
-	                wrist_pitch = atoi(token);
+	                wrist_ver_angle = atoi(token);
 	            }
 
 	            token = strtok(NULL, ",");
 	            if (token != NULL) {
-	            	wrist_roll = atoi(token);
+	            	wrist_rot_angle = atoi(token);
 	            }
 
 	            token = strtok(NULL, ",");
 	            if (token != NULL) {
 	                detected_class = atoi(token);
 	            }
+	            move_arm = 1;
 	        // Construct the response message
 	        strcpy(response_msg, "Received: ");
 	        strcat(response_msg, (char*)buffer); // Cast to char* is fine here as it's null-terminated
@@ -125,6 +159,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 	        // Re-enable the receive interrupt *after* processing the current data
 	        HAL_UART_Receive_IT(&huart1, buffer, 21);
+
 	}
 }
 
@@ -173,7 +208,6 @@ int main(void)
 
   Init_arm();
 
-  MoveArm(45, 90, 45, 70, 45, 30);
 /*  move_elbow(90);
 
   move_base(45);
@@ -187,6 +221,48 @@ int main(void)
   move_gripper(30);*/
 
   /* USER CODE END 2 */
+
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of bluetooth */
+  bluetoothHandle = osThreadNew(BluetoothTask, NULL, &bluetooth_attributes);
+
+  /* creation of moveRobotArm */
+  moveRobotArmHandle = osThreadNew(MoveRobotArmTask, NULL, &moveRobotArm_attributes);
+
+  /* creation of colorSensor */
+  colorSensorHandle = osThreadNew(ColorSensorTask, NULL, &colorSensor_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -544,6 +620,87 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_BluetoothTask */
+/**
+  * @brief  Function implementing the bluetooth thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_BluetoothTask */
+void BluetoothTask(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_MoveRobotArmTask */
+/**
+* @brief Function implementing the moveRobotArm thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_MoveRobotArmTask */
+void MoveRobotArmTask(void *argument)
+{
+  /* USER CODE BEGIN MoveRobotArmTask */
+  /* Infinite loop */
+  for(;;)
+  {
+	  if(move_arm){
+	  		  MoveArm(base_angle, shoulder_angle, elbow_angle, wrist_ver_angle, wrist_rot_angle, 30);
+	  		  move_arm = 0;
+	  		  index_buffer_write.value--;
+	  	  }
+    osDelay(1);
+  }
+  /* USER CODE END MoveRobotArmTask */
+}
+
+/* USER CODE BEGIN Header_ColorSensorTask */
+/**
+* @brief Function implementing the colorSensor thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_ColorSensorTask */
+void ColorSensorTask(void *argument)
+{
+  /* USER CODE BEGIN ColorSensorTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END ColorSensorTask */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM1 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM1)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.

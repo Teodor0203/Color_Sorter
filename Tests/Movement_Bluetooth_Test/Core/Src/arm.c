@@ -69,9 +69,9 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
             Set_Servo_Angle(&htim2, TIM_CHANNEL_1, current_value_base);
         }
 
-        if ((current_value_shoulder + 45) != shoulder_angle)
+        if ((current_value_shoulder + 45) != shoulder_angle + 45)
         {
-            if ((current_value_shoulder + 45) > shoulder_angle)
+            if ((current_value_shoulder + 45) > shoulder_angle + 45)
             {
             	current_value_shoulder--;
             }
@@ -140,7 +140,7 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
         HAL_Delay(25);
 
         if ((current_value_base == base_angle) &&
-            (current_value_shoulder + 45 == shoulder_angle) &&
+            (current_value_shoulder + 45 == shoulder_angle + 45) &&
             (current_value_elbow == elbow_angle) &&
             (current_value_wrist_ver == wrist_ver_angle) &&
             (current_value_wrist_rot == wrist_rot_angle) &&
