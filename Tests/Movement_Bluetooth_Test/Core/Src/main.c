@@ -115,9 +115,16 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 
 
-	        if(++index_buffer_write.value == index_buffer_read.value){
+	        if(index_buffer_write.value == 7 && index_buffer_read.value == 0){
 	        	is_buffer_full = 1;
+	        	return;
 	        }
+	        	if(++index_buffer_write.value == index_buffer_read.value)
+	        	{
+	        		is_buffer_full = 1;
+	        		return;
+	        	}
+
 	        char *token;
 
 	            token = strtok(temp_buffer, ",");
@@ -206,7 +213,9 @@ int main(void)
   HAL_UART_Transmit(&huart1, (uint8_t*) temp_msg, strlen(temp_msg), HAL_MAX_DELAY);
   HAL_UART_Receive_IT(&huart1, buffer, 21);
 
+  index_buffer_write.value =7;
   Init_arm();
+
 
 /*  move_elbow(90);
 
@@ -655,7 +664,7 @@ void MoveRobotArmTask(void *argument)
 	  if(move_arm){
 	  		  MoveArm(base_angle, shoulder_angle, elbow_angle, wrist_ver_angle, wrist_rot_angle, 30);
 	  		  move_arm = 0;
-	  		  index_buffer_write.value--;
+	  		  index_buffer_read.value++;
 	  	  }
     osDelay(1);
   }
