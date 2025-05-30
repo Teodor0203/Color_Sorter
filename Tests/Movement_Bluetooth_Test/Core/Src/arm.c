@@ -1,4 +1,5 @@
 #include "arm.h"
+#include "cmsis_os.h"
 
 static uint8_t current_value_base = 90;
 static uint8_t current_value_shoulder = 90;
@@ -13,6 +14,7 @@ TIM_HandleTypeDef htim4;
 
 void Set_Servo_Angle(TIM_HandleTypeDef *htim, uint32_t channel, uint8_t angle)
 {
+
     uint32_t pulse_length = 210 + (angle * (1050 - 210) / 180);
     __HAL_TIM_SET_COMPARE(htim, channel, pulse_length);
 }
@@ -30,22 +32,22 @@ void Init_arm()
 
 	// Set arm to initial position
     Set_Servo_Angle(&htim2, TIM_CHANNEL_1, current_value_base);
-    HAL_Delay(1500);
+    HAL_Delay(1000);
 
-    Set_Servo_Angle(&htim4, TIM_CHANNEL_1, current_value_shoulder+45);
-    HAL_Delay(1500);
+    Set_Servo_Angle(&htim4, TIM_CHANNEL_1, current_value_shoulder - 30);
+    HAL_Delay(1000);
 
     Set_Servo_Angle(&htim3, TIM_CHANNEL_2, current_value_elbow);
-    HAL_Delay(1500);
+    HAL_Delay(1000);
 
     Set_Servo_Angle(&htim2, TIM_CHANNEL_3, current_value_wrist_ver);
-    HAL_Delay(1500);
+    HAL_Delay(1000);
 
     Set_Servo_Angle(&htim3, TIM_CHANNEL_1, current_value_wrist_rot);
-    HAL_Delay(1500);
+    HAL_Delay(1000);
 
     Set_Servo_Angle(&htim2, TIM_CHANNEL_2, current_value_gripper);
-    HAL_Delay(1500);
+    HAL_Delay(1000);
 }
 
 
@@ -69,9 +71,9 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
             Set_Servo_Angle(&htim2, TIM_CHANNEL_1, current_value_base);
         }
 
-        if ((current_value_shoulder + 45) != shoulder_angle + 45)
+        if ((current_value_shoulder - 30) != shoulder_angle - 30)
         {
-            if ((current_value_shoulder + 45) > shoulder_angle + 45)
+            if ((current_value_shoulder - 30) > shoulder_angle - 30)
             {
             	current_value_shoulder--;
             }
@@ -80,7 +82,7 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
             	current_value_shoulder++;
             }
 
-            Set_Servo_Angle(&htim4, TIM_CHANNEL_1, current_value_shoulder + 45);
+            Set_Servo_Angle(&htim4, TIM_CHANNEL_1, current_value_shoulder - 30);
         }
 
         if (current_value_elbow != elbow_angle)
@@ -137,7 +139,7 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
             Set_Servo_Angle(&htim2, TIM_CHANNEL_2, current_value_gripper);
         }
 
-        HAL_Delay(25);
+        osDelay(15);
 
         if ((current_value_base == base_angle) &&
             (current_value_shoulder + 45 == shoulder_angle + 45) &&
