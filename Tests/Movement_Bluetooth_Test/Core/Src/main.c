@@ -102,53 +102,7 @@ void ColorSensorTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-	if (huart->Instance == USART1) {
-	        char response_msg[100];
-	        char temp_buffer[21]; // Create a copy if you need to preserve the original
 
-	        strcpy(temp_buffer, buffer); // Copy the original string
-
-	        char *token;
-
-	            token = strtok(temp_buffer, ",");
-	            if (token != NULL) {
-	                base_angle = atoi(token);
-	            }
-
-	            token = strtok(NULL, ",");
-	            if (token != NULL) {
-	                shoulder_angle = atoi(token);
-	            }
-
-	            token = strtok(NULL, ",");
-	            if (token != NULL) {
-	                elbow_angle = atoi(token);
-	            }
-
-	            token = strtok(NULL, ",");
-	            if (token != NULL) {
-	                wrist_ver_angle = atoi(token);
-	            }
-
-	            token = strtok(NULL, ",");
-	            if (token != NULL) {
-	            	wrist_rot_angle = atoi(token);
-	            }
-
-	            token = strtok(NULL, ",");
-	            if (token != NULL) {
-	                detected_class = atoi(token);
-	            }
-	            move_arm = 1;
-
-	        // Transmit the response
-	        //HAL_UART_Transmit(&huart1, (uint8_t*) response_msg, strlen(response_msg), HAL_MAX_DELAY);
-
-	        // Re-enable the receive interrupt *after* processing the current data
-
-	}
-}
 
 /* USER CODE END 0 */
 
@@ -194,18 +148,6 @@ int main(void)
   HAL_UART_Receive_IT(&huart1, buffer, 21);
 
   Init_arm();
-/*  move_elbow(90);
-
-  move_base(45);
-
-  move_shoulder(45);
-
-  move_wrist_ver(70);
-
-  move_wrist_rot(45);
-
-  move_gripper(30);*/
-
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -604,7 +546,52 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
+	if (huart->Instance == USART1) {
+	        char response_msg[100];
+	        char temp_buffer[21]; // Create a copy if you need to preserve the original
 
+	        strcpy(temp_buffer, buffer); // Copy the original string
+
+	        char *token;
+
+	            token = strtok(temp_buffer, ",");
+	            if (token != NULL) {
+	                base_angle = atoi(token);
+	            }
+
+	            token = strtok(NULL, ",");
+	            if (token != NULL) {
+	                shoulder_angle = atoi(token);
+	            }
+
+	            token = strtok(NULL, ",");
+	            if (token != NULL) {
+	                elbow_angle = atoi(token);
+	            }
+
+	            token = strtok(NULL, ",");
+	            if (token != NULL) {
+	                wrist_ver_angle = atoi(token);
+	            }
+
+	            token = strtok(NULL, ",");
+	            if (token != NULL) {
+	            	wrist_rot_angle = atoi(token);
+	            }
+
+	            token = strtok(NULL, ",");
+	            if (token != NULL) {
+	                detected_class = atoi(token);
+	            }
+	            move_arm = 1;
+	        // Transmit the response
+	        //HAL_UART_Transmit(&huart1, (uint8_t*) response_msg, strlen(response_msg), HAL_MAX_DELAY);
+	            HAL_UART_Receive_IT(&huart1, buffer, 21);
+	        // Re-enable the receive interrupt *after* processing the current data
+
+	}
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_BluetoothTask */
@@ -623,8 +610,9 @@ void BluetoothTask(void *argument)
 	  if (is_ready)
 	  {
 		  is_ready = 0;
-
-		  HAL_UART_Receive_IT(&huart1, buffer, 21);
+		  char msg_ready[2];
+		  strcpy(msg_ready, "1");
+		  HAL_UART_Transmit(&huart1, (uint8_t*) msg_ready, strlen(msg_ready), HAL_MAX_DELAY);
 	  }
     osDelay(1);
   }
@@ -656,14 +644,17 @@ void MoveRobotArmTask(void *argument)
 		  	  switch (detected_class) // move to pile
 		  	  {
 		  	  case 0:
-		  		  MoveArm(base_angle, shoulder_angle, elbow_angle, 0, wrist_rot_angle, 70);
+		  		  MoveArm(0, 90, 35, 20, 90, 10); // red pile
 		  		  break;
 		  	  case 1:
-		  		 MoveArm(base_angle, shoulder_angle, elbow_angle, 0, wrist_rot_angle, 70);
-		  		 break;
+		  		  MoveArm(0, 40, 70, 40, 90, 10);
+		  		  break;
 		  	  case 2:
-		  		 MoveArm(base_angle, shoulder_angle, elbow_angle, 0, wrist_rot_angle, 70);
-		  		 break;
+		  		  MoveArm(180, 90, 35, 20, 90, 10);
+		  		  break;
+		  	  case 3:
+		  		  MoveArm(180, 40, 70, 40, 90, 10);
+		  		  break;
 		  	  default:
 		  		  break;
 		  	  }
