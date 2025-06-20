@@ -6,7 +6,7 @@ static uint8_t current_value_shoulder = 90;
 static uint8_t current_value_elbow = 90;
 static uint8_t current_value_wrist_ver = 90;
 static uint8_t current_value_wrist_rot = 90;
-static uint8_t current_value_gripper = 90;
+static uint8_t current_value_gripper = 10;
 
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
@@ -34,7 +34,7 @@ void Init_arm()
     Set_Servo_Angle(&htim2, TIM_CHANNEL_1, current_value_base);
     HAL_Delay(1000);
 
-    Set_Servo_Angle(&htim4, TIM_CHANNEL_1, current_value_shoulder - 30);
+    Set_Servo_Angle(&htim4, TIM_CHANNEL_1, current_value_shoulder);
     HAL_Delay(1000);
 
     Set_Servo_Angle(&htim3, TIM_CHANNEL_2, current_value_elbow);
@@ -57,35 +57,8 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
 
     while (isMoving)
     {
-        if (current_value_base != base_angle)
-        {
-            if (current_value_base > base_angle)
-            {
-            	current_value_base--;
-            }
-            else
-            {
-            	current_value_base++;
-            }
 
-            Set_Servo_Angle(&htim2, TIM_CHANNEL_1, current_value_base);
-        }
-
-        if ((current_value_shoulder - 30) != shoulder_angle - 30)
-        {
-            if ((current_value_shoulder - 30) > shoulder_angle - 30)
-            {
-            	current_value_shoulder--;
-            }
-            else
-            {
-            	current_value_shoulder++;
-            }
-
-            Set_Servo_Angle(&htim4, TIM_CHANNEL_1, current_value_shoulder - 30);
-        }
-
-        if (current_value_elbow != elbow_angle)
+        while (current_value_elbow != elbow_angle)
         {
             if (current_value_elbow > elbow_angle)
             {
@@ -97,9 +70,43 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
             }
 
             Set_Servo_Angle(&htim3, TIM_CHANNEL_2, current_value_elbow);
+
+            osDelay(15);
         }
 
-        if (current_value_wrist_ver != wrist_ver_angle)
+        while (current_value_base != base_angle)
+        {
+            if (current_value_base > base_angle)
+            {
+            	current_value_base--;
+            }
+            else
+            {
+            	current_value_base++;
+            }
+
+            Set_Servo_Angle(&htim2, TIM_CHANNEL_1, current_value_base);
+
+            osDelay(15);
+        }
+
+        while ((current_value_shoulder) != shoulder_angle)
+        {
+            if ((current_value_shoulder) > shoulder_angle)
+            {
+            	current_value_shoulder--;
+            }
+            else
+            {
+            	current_value_shoulder++;
+            }
+
+            Set_Servo_Angle(&htim4, TIM_CHANNEL_1, current_value_shoulder);
+
+            osDelay(15);
+        }
+
+        while (current_value_wrist_ver != wrist_ver_angle)
         {
             if (current_value_wrist_ver > wrist_ver_angle)
             {
@@ -111,9 +118,11 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
             }
 
             Set_Servo_Angle(&htim2, TIM_CHANNEL_3, current_value_wrist_ver);
+
+            osDelay(15);
         }
 
-        if (current_value_wrist_rot != wrist_rot_angle)
+        while (current_value_wrist_rot != wrist_rot_angle)
         {
             if (current_value_wrist_rot > wrist_rot_angle)
             {
@@ -123,9 +132,11 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
                 current_value_wrist_rot++;
 
             Set_Servo_Angle(&htim3, TIM_CHANNEL_1, current_value_wrist_rot);
+
+            osDelay(15);
         }
 
-        if (current_value_gripper != gripper_angle)
+        while (current_value_gripper != gripper_angle)
         {
             if (current_value_gripper > gripper_angle)
             {
@@ -137,6 +148,8 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
             }
 
             Set_Servo_Angle(&htim2, TIM_CHANNEL_2, current_value_gripper);
+
+            osDelay(15);
         }
 
         osDelay(15);

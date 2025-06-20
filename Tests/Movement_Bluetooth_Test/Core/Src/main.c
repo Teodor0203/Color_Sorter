@@ -71,8 +71,9 @@ const osThreadAttr_t colorSensor_attributes = {
 struct ThreeBitValue index_buffer_write;
 struct ThreeBitValue index_buffer_read;
 
-int is_buffer_full = 0;
-uint8_t buffer_q[8][21];
+int is_ready = 0;
+int move_arm = 0;
+
 uint8_t buffer[21];
 
 uint8_t base_angle;
@@ -81,9 +82,6 @@ uint8_t elbow_angle;
 uint8_t wrist_ver_angle;
 uint8_t wrist_rot_angle;
 uint8_t detected_class;
-
-int move_arm = 0;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -108,23 +106,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	if (huart->Instance == USART1) {
 	        char response_msg[100];
 	        char temp_buffer[21]; // Create a copy if you need to preserve the original
-	        for(int i = 0; i < 21; i++)
-	       	        	buffer_q[index_buffer_write.value][i] = buffer[i];
 
-	        strcpy(temp_buffer, buffer_q[index_buffer_read.value]); // Copy the original string
-
-
-
-	        if(index_buffer_write.value == 7 && index_buffer_read.value == 0){
-	        	is_buffer_full = 1;
-	        	return;
-	        }
-
-	        if(++index_buffer_write.value == index_buffer_read.value)
-	        {
-	        	is_buffer_full = 1;
-	        	return;
-	        }
+	        strcpy(temp_buffer, buffer); // Copy the original string
 
 	        char *token;
 
@@ -158,15 +141,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	                detected_class = atoi(token);
 	            }
 	            move_arm = 1;
-	        // Construct the response message
-	        strcpy(response_msg, "Received: ");
-	        strcat(response_msg, (char*)buffer); // Cast to char* is fine here as it's null-terminated
 
 	        // Transmit the response
-	        HAL_UART_Transmit(&huart1, (uint8_t*) response_msg, strlen(response_msg), HAL_MAX_DELAY);
+	        //HAL_UART_Transmit(&huart1, (uint8_t*) response_msg, strlen(response_msg), HAL_MAX_DELAY);
 
 	        // Re-enable the receive interrupt *after* processing the current data
-	        HAL_UART_Receive_IT(&huart1, buffer, 21);
 
 	}
 }
@@ -215,9 +194,6 @@ int main(void)
   HAL_UART_Receive_IT(&huart1, buffer, 21);
 
   Init_arm();
-
-
-
 
 /*  move_elbow(90);
 
@@ -645,6 +621,12 @@ void BluetoothTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
+	  if (is_ready)
+	  {
+		  is_ready = 0;
+
+		  HAL_UART_Receive_IT(&huart1, buffer, 21);
+	  }
     osDelay(1);
   }
   /* USER CODE END 5 */
@@ -663,11 +645,32 @@ void MoveRobotArmTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-//	  if(move_arm){
-		  	  MoveArm(90, 135 , 90, 45, 90, 30);
+	  if(move_arm){
 	  		  move_arm = 0;
-	  		  index_buffer_read.value++;
-//	  	  }
+
+	  		  MoveArm(base_angle, shoulder_angle, elbow_angle, wrist_ver_angle, wrist_rot_angle, 10); // move to object
+
+		  	  MoveArm(base_angle, shoulder_angle, elbow_angle, 0, wrist_rot_angle, 70); // grab object
+
+		  	  MoveArm(base_angle, shoulder_angle, elbow_angle, wrist_ver_angles, wrist_rot_angle, 70); // raise object
+
+		  	  switch (detected_class) // move to pile
+		  	  {
+		  	  case 0:
+		  		  MoveArm(base_angle, shoulder_angle, elbow_angle, 0, wrist_rot_angle, 70);
+		  		  break;
+		  	  case 1:
+		  		 MoveArm(base_angle, shoulder_angle, elbow_angle, 0, wrist_rot_angle, 70);
+		  		 break;
+		  	  case 2:
+		  		 MoveArm(base_angle, shoulder_angle, elbow_angle, 0, wrist_rot_angle, 70);
+		  		 break;
+		  	  default:
+		  		  break;
+		  	  }
+
+		  	  is_ready = 1;
+	  	  }
     osDelay(1);
   }
   /* USER CODE END MoveRobotArmTask */
