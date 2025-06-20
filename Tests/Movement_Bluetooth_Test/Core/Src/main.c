@@ -188,13 +188,12 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  char temp_msg[32];
-  strcpy(temp_msg, "HC-05 Initialised!\n");
-  HAL_UART_Transmit(&huart1, (uint8_t*) temp_msg, strlen(temp_msg), HAL_MAX_DELAY);
+//  char temp_msg[32];
+//  strcpy(temp_msg, "HC-05 Initialised!\n");
+//  HAL_UART_Transmit(&huart1, (uint8_t*) temp_msg, strlen(temp_msg), HAL_MAX_DELAY);
   HAL_UART_Receive_IT(&huart1, buffer, 21);
 
   Init_arm();
-
 /*  move_elbow(90);
 
   move_base(45);
@@ -652,7 +651,7 @@ void MoveRobotArmTask(void *argument)
 
 		  	  MoveArm(base_angle, shoulder_angle, elbow_angle, 0, wrist_rot_angle, 70); // grab object
 
-		  	  MoveArm(base_angle, shoulder_angle, elbow_angle, wrist_ver_angles, wrist_rot_angle, 70); // raise object
+		  	  MoveArm(base_angle, shoulder_angle, elbow_angle, wrist_ver_angle, wrist_rot_angle, 70); // raise object
 
 		  	  switch (detected_class) // move to pile
 		  	  {

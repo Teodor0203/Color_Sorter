@@ -1,3 +1,3 @@
 ../Core/Src/arm.c:15:6:Set_Servo_Angle	4
-../Core/Src/arm.c:22:6:Init_arm	1
-../Core/Src/arm.c:54:6:MoveArm	20
+../Core/Src/arm.c:21:6:Init_arm	1
+../Core/Src/arm.c:53:6:MoveArm	20
