@@ -24,6 +24,8 @@
 /* USER CODE BEGIN Includes */
 #include "arm.h"
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -35,6 +37,27 @@ struct ThreeBitValue {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define BASE_LEFT_PILE 0
+#define BASE_RIGHT_PILE 180
+
+#define SHOULDER_NEAR_PILE 90
+#define SHOULDER_FAR_PILE 40
+
+#define ELBOW_NEAR_PILE 35
+#define ELBOW_FAR_PILE 70
+
+#define WRIST_NEAR_PILE 20
+#define WRIST_FAR_PILE 40
+
+#define WRIST_RAISED_ANGLE  90
+#define WRIST_GRAB_ANGLE  0
+
+#define WRIST_ROT_ANGLE 90
+
+#define GRIPPER_CLOSED  70
+#define GRIPPER_OPPENED 10
+
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -43,6 +66,10 @@ struct ThreeBitValue {
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim4;
+
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
@@ -60,27 +87,16 @@ const osThreadAttr_t moveRobotArm_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for colorSensor */
-osThreadId_t colorSensorHandle;
-const osThreadAttr_t colorSensor_attributes = {
-  .name = "colorSensor",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
 /* USER CODE BEGIN PV */
-struct ThreeBitValue index_buffer_write;
-struct ThreeBitValue index_buffer_read;
-
 int is_ready = 0;
 int move_arm = 0;
 
-uint8_t buffer[21];
+uint8_t buffer[10];
 
 uint8_t base_angle;
 uint8_t shoulder_angle;
 uint8_t elbow_angle;
-uint8_t wrist_ver_angle;
-uint8_t wrist_rot_angle;
+
 uint8_t detected_class;
 /* USER CODE END PV */
 
@@ -94,7 +110,6 @@ static void MX_TIM4_Init(void);
 static void MX_USART1_UART_Init(void);
 void BluetoothTask(void *argument);
 void MoveRobotArmTask(void *argument);
-void ColorSensorTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -148,6 +163,10 @@ int main(void)
   HAL_UART_Receive_IT(&huart1, buffer, 21);
 
   Init_arm();
+
+  char msg_ready[2];
+  strcpy(msg_ready, "1");
+  HAL_UART_Transmit(&huart1, (uint8_t*) msg_ready, strlen(msg_ready), HAL_MAX_DELAY);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -175,9 +194,6 @@ int main(void)
 
   /* creation of moveRobotArm */
   moveRobotArmHandle = osThreadNew(MoveRobotArmTask, NULL, &moveRobotArm_attributes);
-
-  /* creation of colorSensor */
-  colorSensorHandle = osThreadNew(ColorSensorTask, NULL, &colorSensor_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -548,48 +564,34 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	if (huart->Instance == USART1) {
-	        char response_msg[100];
-	        char temp_buffer[21]; // Create a copy if you need to preserve the original
+		char temp_buffer[10]; // Create a copy if you need to preserve the original
+		strcpy(temp_buffer, buffer);
 
-	        strcpy(temp_buffer, buffer); // Copy the original string
+		char *token;
 
-	        char *token;
+		token = strtok(temp_buffer, ",");
+		if (token != NULL) {
+			base_angle = atoi(token);
+	    }
 
-	            token = strtok(temp_buffer, ",");
-	            if (token != NULL) {
-	                base_angle = atoi(token);
-	            }
+		token = strtok(NULL, ",");
+		if (token != NULL) {
+			shoulder_angle = atoi(token);
+		}
 
-	            token = strtok(NULL, ",");
-	            if (token != NULL) {
-	                shoulder_angle = atoi(token);
-	            }
+		token = strtok(NULL, ",");
+		if (token != NULL) {
+			elbow_angle = atoi(token) - 10;
+		}
 
-	            token = strtok(NULL, ",");
-	            if (token != NULL) {
-	                elbow_angle = atoi(token);
-	            }
+		token = strtok(NULL, ",");
+		if (token != NULL) {
+			detected_class = atoi(token);
+		}
 
-	            token = strtok(NULL, ",");
-	            if (token != NULL) {
-	                wrist_ver_angle = atoi(token);
-	            }
+		move_arm = 1;
 
-	            token = strtok(NULL, ",");
-	            if (token != NULL) {
-	            	wrist_rot_angle = atoi(token);
-	            }
-
-	            token = strtok(NULL, ",");
-	            if (token != NULL) {
-	                detected_class = atoi(token);
-	            }
-	            move_arm = 1;
-	        // Transmit the response
-	        //HAL_UART_Transmit(&huart1, (uint8_t*) response_msg, strlen(response_msg), HAL_MAX_DELAY);
-	            HAL_UART_Receive_IT(&huart1, buffer, 21);
-	        // Re-enable the receive interrupt *after* processing the current data
-
+	    HAL_UART_Receive_IT(&huart1, buffer, 10);
 	}
 }
 /* USER CODE END 4 */
@@ -605,14 +607,14 @@ void BluetoothTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
+  char msg_ready[2];
+  strcpy(msg_ready, "1");
   for(;;)
   {
 	  if (is_ready)
 	  {
-		  is_ready = 0;
-		  char msg_ready[2];
-		  strcpy(msg_ready, "1");
 		  HAL_UART_Transmit(&huart1, (uint8_t*) msg_ready, strlen(msg_ready), HAL_MAX_DELAY);
+		  is_ready = 0;
 	  }
     osDelay(1);
   }
@@ -635,25 +637,23 @@ void MoveRobotArmTask(void *argument)
 	  if(move_arm){
 	  		  move_arm = 0;
 
-	  		  MoveArm(base_angle, shoulder_angle, elbow_angle, wrist_ver_angle, wrist_rot_angle, 10); // move to object
-
-		  	  MoveArm(base_angle, shoulder_angle, elbow_angle, 0, wrist_rot_angle, 70); // grab object
-
-		  	  MoveArm(base_angle, shoulder_angle, elbow_angle, wrist_ver_angle, wrist_rot_angle, 70); // raise object
+	  		  MoveArm(base_angle, shoulder_angle, elbow_angle, WRIST_RAISED_ANGLE, WRIST_ROT_ANGLE, GRIPPER_OPPENED); // move to object
+		  	  MoveArm(base_angle, shoulder_angle, elbow_angle, WRIST_GRAB_ANGLE  , WRIST_ROT_ANGLE, GRIPPER_CLOSED ); // grab object
+		  	  MoveArm(base_angle, shoulder_angle, elbow_angle, WRIST_RAISED_ANGLE, WRIST_ROT_ANGLE, GRIPPER_CLOSED ); // raise object
 
 		  	  switch (detected_class) // move to pile
 		  	  {
 		  	  case 0:
-		  		  MoveArm(0, 90, 35, 20, 90, 10); // red pile
+		  		  MoveArm(BASE_RIGHT_PILE, SHOULDER_NEAR_PILE, ELBOW_NEAR_PILE, WRIST_NEAR_PILE, WRIST_ROT_ANGLE, GRIPPER_OPPENED); // red pile
 		  		  break;
 		  	  case 1:
-		  		  MoveArm(0, 40, 70, 40, 90, 10);
+		  		  MoveArm(BASE_RIGHT_PILE, SHOULDER_FAR_PILE, ELBOW_FAR_PILE, WRIST_FAR_PILE, WRIST_ROT_ANGLE, GRIPPER_OPPENED); // green pile
 		  		  break;
 		  	  case 2:
-		  		  MoveArm(180, 90, 35, 20, 90, 10);
+		  		  MoveArm(BASE_RIGHT_PILE, SHOULDER_NEAR_PILE, ELBOW_NEAR_PILE, WRIST_NEAR_PILE, WRIST_ROT_ANGLE, GRIPPER_OPPENED); // blue pile
 		  		  break;
 		  	  case 3:
-		  		  MoveArm(180, 40, 70, 40, 90, 10);
+		  		  MoveArm(BASE_RIGHT_PILE, SHOULDER_FAR_PILE, ELBOW_FAR_PILE, WRIST_FAR_PILE, WRIST_ROT_ANGLE, GRIPPER_OPPENED); // yellow pile
 		  		  break;
 		  	  default:
 		  		  break;
@@ -664,24 +664,6 @@ void MoveRobotArmTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END MoveRobotArmTask */
-}
-
-/* USER CODE BEGIN Header_ColorSensorTask */
-/**
-* @brief Function implementing the colorSensor thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_ColorSensorTask */
-void ColorSensorTask(void *argument)
-{
-  /* USER CODE BEGIN ColorSensorTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END ColorSensorTask */
 }
 
 /**
