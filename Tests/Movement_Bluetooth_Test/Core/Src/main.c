@@ -26,38 +26,15 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-struct ThreeBitValue {
-	unsigned int value : 3;
-};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define BASE_LEFT_PILE 0
-#define BASE_RIGHT_PILE 180
-
-#define SHOULDER_NEAR_PILE 90
-#define SHOULDER_FAR_PILE 40
-
-#define ELBOW_NEAR_PILE 35
-#define ELBOW_FAR_PILE 70
-
-#define WRIST_NEAR_PILE 20
-#define WRIST_FAR_PILE 40
-
-#define WRIST_RAISED_ANGLE  90
-#define WRIST_GRAB_ANGLE  0
-
-#define WRIST_ROT_ANGLE 90
-
-#define GRIPPER_CLOSED  70
-#define GRIPPER_OPPENED 10
-
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -88,16 +65,16 @@ const osThreadAttr_t moveRobotArm_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
-int is_ready = 0;
-int move_arm = 0;
+bool is_ready = 0;
+bool move_arm = 0;
 
-uint8_t buffer[10];
+uint8_t buffer[14];
 
 uint8_t base_angle;
 uint8_t shoulder_angle;
 uint8_t elbow_angle;
 
-uint8_t detected_class;
+uint8_t object_colour;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -157,13 +134,11 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
-//  char temp_msg[32];
-//  strcpy(temp_msg, "HC-05 Initialised!\n");
-//  HAL_UART_Transmit(&huart1, (uint8_t*) temp_msg, strlen(temp_msg), HAL_MAX_DELAY);
-  HAL_UART_Receive_IT(&huart1, buffer, 21);
+  HAL_UART_Receive_IT(&huart1, buffer, 14); // init callback function
 
-  Init_arm();
+  Init_arm(); // init arm
 
+  // prepare and send the ready signal to pi to receive object coordinates
   char msg_ready[2];
   strcpy(msg_ready, "1");
   HAL_UART_Transmit(&huart1, (uint8_t*) msg_ready, strlen(msg_ready), HAL_MAX_DELAY);
@@ -564,11 +539,10 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	if (huart->Instance == USART1) {
-		char temp_buffer[10]; // Create a copy if you need to preserve the original
-		strcpy(temp_buffer, buffer);
+		char temp_buffer[14];
+		strcpy(temp_buffer, buffer); // copy received coords into string
 
-		char *token;
-
+		char *token; // extract coods from string
 		token = strtok(temp_buffer, ",");
 		if (token != NULL) {
 			base_angle = atoi(token);
@@ -586,12 +560,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 		token = strtok(NULL, ",");
 		if (token != NULL) {
-			detected_class = atoi(token);
+			object_colour = atoi(token);
 		}
 
-		move_arm = 1;
+		move_arm = 1; // set signal to move arm
 
-	    HAL_UART_Receive_IT(&huart1, buffer, 10);
+	    HAL_UART_Receive_IT(&huart1, buffer, 14); // restart the callback function
 	}
 }
 /* USER CODE END 4 */
@@ -607,14 +581,15 @@ void BluetoothTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
+
   char msg_ready[2];
-  strcpy(msg_ready, "1");
+  strcpy(msg_ready, "1"); // ready message for pi
+
   for(;;)
   {
-	  if (is_ready)
-	  {
-		  HAL_UART_Transmit(&huart1, (uint8_t*) msg_ready, strlen(msg_ready), HAL_MAX_DELAY);
-		  is_ready = 0;
+	  if (is_ready){                                                                          // if arm ready
+		  HAL_UART_Transmit(&huart1, (uint8_t*) msg_ready, strlen(msg_ready), HAL_MAX_DELAY); // send ready signal to pi
+		  is_ready = 0;                                                                       // reset ready signal
 	  }
     osDelay(1);
   }
@@ -632,35 +607,12 @@ void MoveRobotArmTask(void *argument)
 {
   /* USER CODE BEGIN MoveRobotArmTask */
   /* Infinite loop */
-  for(;;)
-  {
-	  if(move_arm){
-	  		  move_arm = 0;
-
-	  		  MoveArm(base_angle, shoulder_angle, elbow_angle, WRIST_RAISED_ANGLE, WRIST_ROT_ANGLE, GRIPPER_OPPENED); // move to object
-		  	  MoveArm(base_angle, shoulder_angle, elbow_angle, WRIST_GRAB_ANGLE  , WRIST_ROT_ANGLE, GRIPPER_CLOSED ); // grab object
-		  	  MoveArm(base_angle, shoulder_angle, elbow_angle, WRIST_RAISED_ANGLE, WRIST_ROT_ANGLE, GRIPPER_CLOSED ); // raise object
-
-		  	  switch (detected_class) // move to pile
-		  	  {
-		  	  case 0:
-		  		  MoveArm(BASE_RIGHT_PILE, SHOULDER_NEAR_PILE, ELBOW_NEAR_PILE, WRIST_NEAR_PILE, WRIST_ROT_ANGLE, GRIPPER_OPPENED); // red pile
-		  		  break;
-		  	  case 1:
-		  		  MoveArm(BASE_RIGHT_PILE, SHOULDER_FAR_PILE, ELBOW_FAR_PILE, WRIST_FAR_PILE, WRIST_ROT_ANGLE, GRIPPER_OPPENED); // green pile
-		  		  break;
-		  	  case 2:
-		  		  MoveArm(BASE_RIGHT_PILE, SHOULDER_NEAR_PILE, ELBOW_NEAR_PILE, WRIST_NEAR_PILE, WRIST_ROT_ANGLE, GRIPPER_OPPENED); // blue pile
-		  		  break;
-		  	  case 3:
-		  		  MoveArm(BASE_RIGHT_PILE, SHOULDER_FAR_PILE, ELBOW_FAR_PILE, WRIST_FAR_PILE, WRIST_ROT_ANGLE, GRIPPER_OPPENED); // yellow pile
-		  		  break;
-		  	  default:
-		  		  break;
-		  	  }
-
-		  	  is_ready = 1;
-	  	  }
+  for(;;){
+	  if(move_arm){                                                                   // if received coords move arm
+	  		  move_arm = 0;                                                           // reset move signal
+	  		  pick_up_object(base_angle, shoulder_angle, elbow_angle, object_colour); // pick up and sort the object
+	  		  is_ready = 1;                                                           // signal arm is ready
+	  }
     osDelay(1);
   }
   /* USER CODE END MoveRobotArmTask */

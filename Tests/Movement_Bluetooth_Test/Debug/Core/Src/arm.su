@@ -1,3 +1,7 @@
 ../Core/Src/arm.c:15:6:Set_Servo_Angle	32	static
-../Core/Src/arm.c:21:6:Init_arm	8	static
-../Core/Src/arm.c:52:6:MoveArm	32	static
+../Core/Src/arm.c:21:6:Init_arm	16	static
+../Core/Src/arm.c:54:6:MoveArm	32	static
+../Core/Src/arm.c:139:6:pick_up_object	40	static
+../Core/Src/arm.c:154:9:detect_object_zone	16	static
+../Core/Src/arm.c:161:6:return_to_init_position	16	static
+../Core/Src/arm.c:166:6:move_to_pile	24	static
