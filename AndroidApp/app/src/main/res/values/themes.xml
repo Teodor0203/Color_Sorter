@@ -1,0 +1,19 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.Testing" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <item name="android:windowBackground">@color/black</item>
+        <item name="colorPrimary">@color/PrimaryColorIDK</item>
+        <item name="android:color">@color/backgroundColor</item>
+        <item name="buttonIconTint">@color/black</item>
+        <item name="buttonStyle">@style/CustomButtonStyle</item>
+    </style>
+
+    <style name="CustomButtonStyle" parent="Widget.Material3.Button">
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="CustomToolBarStyle" parent="Widget.Material3.Toolbar">
+        <item name="android:backgroundTint">@color/white</item>
+    </style>
+</resources>
