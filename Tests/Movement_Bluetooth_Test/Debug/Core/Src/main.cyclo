@@ -7,7 +7,7 @@
 ../Core/Src/main.c:472:13:MX_USART2_UART_Init	2
 ../Core/Src/main.c:505:13:MX_GPIO_Init	1
 ../Core/Src/main.c:540:6:HAL_UART_RxCpltCallback	6
-../Core/Src/main.c:580:6:BluetoothTask	2
-../Core/Src/main.c:606:6:MoveRobotArmTask	2
-../Core/Src/main.c:629:6:HAL_TIM_PeriodElapsedCallback	2
-../Core/Src/main.c:647:6:Error_Handler	1
+../Core/Src/main.c:582:6:BluetoothTask	2
+../Core/Src/main.c:608:6:MoveRobotArmTask	2
+../Core/Src/main.c:631:6:HAL_TIM_PeriodElapsedCallback	2
+../Core/Src/main.c:649:6:Error_Handler	1

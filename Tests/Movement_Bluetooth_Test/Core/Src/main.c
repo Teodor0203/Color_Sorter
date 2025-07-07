@@ -555,7 +555,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 		token = strtok(NULL, ",");
 		if (token != NULL) {
-			elbow_angle = atoi(token) - 10;
+			elbow_angle = atoi(token);
+//			if(elbow_angle >= 10)
+//				elbow_angle -= 10;
 		}
 
 		token = strtok(NULL, ",");
