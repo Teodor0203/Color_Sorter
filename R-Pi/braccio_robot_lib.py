@@ -28,6 +28,9 @@ class BraccioKinematicsSolver:
         y = float(target_y_mm)
         z = float(target_z_mm)
 
+        if x == 0 or y == 0:
+            return None
+            
         # --- 1. Calculate Base (Waist) Angle (Servo 0) ---
         base_angle_rad = np.arctan2(y, x)
         base_angle_deg = np.degrees(base_angle_rad)
@@ -53,10 +56,10 @@ class BraccioKinematicsSolver:
                 print("WARNING: Target is at base origin. Robot configuration ambiguous.")
                 
         # Total straight-line distance from shoulder joint to wrist_v joint
-        D = np.sqrt(R**2 + z_eff**2)
+        D = np.sqrt(R**2 + z_eff**2) 
 
         # Check reachability
-        if D > (self.L1 + self.L2) or D < abs(self.L1 - self.L2):
+        if D > (self.L1 + self.L2 + 30) or D < (abs(self.L1 - self.L2) + 30):
             print(f"ERROR: Target ({x:.1f},{y:.1f},{z:.1f}) mm is unreachable. D={D:.1f} mm, Max Reach={self.L1 + self.L2:.1f} mm.")
             return None
 
@@ -92,43 +95,25 @@ class BraccioKinematicsSolver:
         elbow_angle_deg = np.degrees(elbow_angle_rad) # This is the internal angle of the triangle at the elbow
 
         # --- 4. Map to Braccio Servo Angles (0-180 degrees) ---
-        shoulder_servo_angle = 180 - shoulder_angle_deg
+        shoulder_servo_angle = shoulder_angle_deg - 5
 
-        elbow_servo_angle = elbow_angle_deg 
-        
-        # --- 5. Wrist Angles (Fixed for vertical pick) ---
-        wrist_v_servo_angle = 90
+        elbow_servo_angle = elbow_angle_deg - 90
 
-        # Servo 4 (Wrist Rotation): For gripper orientation around its own axis.
-        wrist_r_servo_angle = 90 # Example: Center position (0-180 range)
-
-        # Servo 5 (Gripper): Open/Close.
-        gripper_angle = 100 
-
-        # --- 6. Apply Joint Limits (Braccio-specific limits) ---
+        # --- 5. Apply Joint Limits (Braccio-specific limits) ---
         joint_limits = {
             'base': (0, 180),
             'shoulder': (15, 165),
             'elbow': (0, 180),    
-            'wrist_v': (0, 180),
-            'wrist_r': (0, 180),
-            'gripper': (0, 180)
         }
 
         base_servo_angle = np.clip(base_servo_angle, *joint_limits['base'])
         shoulder_servo_angle = np.clip(shoulder_servo_angle, *joint_limits['shoulder'])
         elbow_servo_angle = np.clip(elbow_servo_angle, *joint_limits['elbow'])
-        wrist_v_servo_angle = np.clip(wrist_v_servo_angle, *joint_limits['wrist_v'])
-        wrist_r_servo_angle = np.clip(wrist_r_servo_angle, *joint_limits['wrist_r'])
-        gripper_angle = np.clip(gripper_angle, *joint_limits['gripper'])
 
         angles = {
             'base': round(base_servo_angle, 1),
             'shoulder': round(shoulder_servo_angle, 1),
             'elbow': round(elbow_servo_angle, 1),
-            'wrist_v': round(wrist_v_servo_angle, 1),
-            'wrist_r': round(wrist_r_servo_angle, 1),
-            'gripper': round(gripper_angle, 1)
         }
         
         return angles

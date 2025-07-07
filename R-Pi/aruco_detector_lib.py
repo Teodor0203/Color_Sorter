@@ -188,8 +188,8 @@ class ObjectDetector:
 
                                 object_3d_marker_frame = R_cam_to_marker @ object_3d_camera_frame.reshape(3,1) + T_cam_to_marker
                                 
-                                X_mm = object_3d_marker_frame[0][0]
-                                Y_mm = object_3d_marker_frame[1][0]
+                                Y_mm = -object_3d_marker_frame[0][0]
+                                X_mm = object_3d_marker_frame[1][0]
                                 Z_mm = object_3d_marker_frame[2][0]
                                 rel_3d_from_aruco_mm = (X_mm, Y_mm, Z_mm)
 

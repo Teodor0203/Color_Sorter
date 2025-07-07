@@ -26,7 +26,7 @@ class BraccioBluetoothSender:
             elif "Host is down" in str(e) or "No route to host" in str(e):
                 print(f"Bluetooth connection error: HC-05 not found or out of range. Check power and proximity.")
             elif sys.platform.startswith('linux') and "[Errno 112]" in str(e):
-                 print(f"Bluetooth connection error (Linux): Device not ready or already in use. Try `sudo rfcomm release hci0` or `sudo systemctl restart bluetooth`")
+                print(f"Bluetooth connection error (Linux): Device not ready or already in use. Try `sudo rfcomm release hci0` or `sudo systemctl restart bluetooth`")
             else:
                 print(f"Bluetooth connection error: {e}")
             self.sock = None
@@ -36,7 +36,7 @@ class BraccioBluetoothSender:
             self.sock = None
             return False
 
-    def send_angles(self, base_angle, shoulder_angle, elbow_angle, wrist_v_angle, wrist_r_angle, gripper_angle, obj_class=0):
+    def send_angles(self, base_angle, shoulder_angle, elbow_angle, obj_class=0):
         if not self.sock:
             print("ERROR: Not connected to Bluetooth. Cannot send data.")
             return False
@@ -44,9 +44,12 @@ class BraccioBluetoothSender:
         base_angle_int = int(np.clip(round(base_angle), 0, 180))
         shoulder_angle_int = int(np.clip(round(shoulder_angle), 0, 180))
         elbow_angle_int = int(np.clip(round(elbow_angle), 0, 180))
-        wrist_v_angle_int = int(np.clip(round(wrist_v_angle), 0, 180))
-        wrist_r_angle_int = int(np.clip(round(wrist_r_angle), 0, 180))
-        gripper_angle_int = int(np.clip(round(gripper_angle), 0, 180))
+
+        if elbow_angle_int <= 10:
+            shoulder_angle_int -= 10
+
+        if elbow_angle_int <= 15:
+            shoulder_angle_int += 10 
         
         # Ensure class is a single digit
         obj_class_int = int(np.clip(round(obj_class), 0, 9))
@@ -56,9 +59,6 @@ class BraccioBluetoothSender:
             f"{base_angle_int:03d},"
             f"{shoulder_angle_int:03d},"
             f"{elbow_angle_int:03d},"
-            f"{wrist_v_angle_int:03d},"
-            f"{wrist_r_angle_int:03d},"
-            f"{gripper_angle_int:03d},"
             f"{obj_class_int}\n" 
         )
 
@@ -74,6 +74,10 @@ class BraccioBluetoothSender:
             print(f"An unexpected error occurred during Bluetooth send: {e}")
             self.disconnect()
             return False
+
+    def receive_ready(self):
+        data = self.sock.recv(64).decode('utf-8') # receive data
+        return data
 
     def disconnect(self):
         """Closes the Bluetooth connection if it's open."""

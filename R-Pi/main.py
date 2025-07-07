@@ -1,35 +1,56 @@
 import cv2
 import cv2.aruco as aruco
 from aruco_detector_lib import ObjectDetector
-from braccio_robot_lib import BraccioKinematicsSolver 
-from braccio_bluetooth_lib import BraccioBluetoothSender 
+from braccio_robot_lib import BraccioKinematicsSolver
+from braccio_bluetooth_lib import BraccioBluetoothSender
+from android_bluetooth_lib import AndroidBluetoothServer
 import numpy as np
 import time
+import threading
+
+# For Pi Camera
+from picamera2 import Picamera2, Preview
+# --- Initialize Picamera2 ---
+picam2 = Picamera2()
+# Configure with the same resolution used for calibration (e.g., 1920x1080)
+# It's crucial for accurate ArUco detection and 3D pose estimation.
+camera_config = picam2.create_still_configuration(main={"size": (1280, 720), "format": "BGR888"})
+picam2.configure(camera_config)
+picam2.start()
 
 # --- Configuration for ObjectDetector ---
-CALIBRATION_FILE = 'camera_calibration.npz' 
-ARUCO_DICT_TYPE = aruco.DICT_6X6_250     
-MARKER_LENGTH_MM = 50.0                 
-MIN_OBJECT_AREA_PIXELS = 1000         
+CALIBRATION_FILE = 'camera_calibration.npz'
+ARUCO_DICT_TYPE = aruco.DICT_6X6_250
+MARKER_LENGTH_MM = 50.0
+MIN_OBJECT_AREA_PIXELS = 1000
+
+ready_event = threading.Event()
+
+data = 0
+detected_colour = 0
 
 COLOR_RANGES = {
     "Red Block": {
-        "lower": np.array([79, 128, 73]), 
-        "upper": np.array([179, 255, 255]) 
+        "lower": np.array([129,70,182]),
+        "upper": np.array([142, 255, 255])
     },
-    "Green Block": {
-        "lower": np.array([79, 128, 73]),  
-        "upper": np.array([179, 255, 255]) 
+    "Pink Block": {
+        "lower": np.array([142,160,48]),
+        "upper": np.array([165,255,255])
+    },
+    "Yellow Block": {
+        "lower": np.array([88,152,40]),
+        "upper": np.array([96,255,255])
     },
     "Blue Block": {
-        "lower": np.array([79, 128, 73]), 
-        "upper": np.array([179, 255, 255]) 
+        "lower": np.array([0,232,0]),
+        "upper": np.array([80, 255, 255])
     }
 }
 
 # --- ArUco Marker Position in Robot's Base Frame ---
-MARKER_X_IN_ROBOT_FRAME_MM = 50.0   # marker is 50mm forward of robot base
-MARKER_Y_IN_ROBOT_FRAME_MM = -50.0  # marker is 50mm to the robot's right of robot base
+MARKER_X_IN_ROBOT_FRAME_MM = 120.0   # marker is 50mm forward of robot base
+MARKER_Y_IN_ROBOT_FRAME_MM = -70.0  # marker is 50mm to the robot's right of robot base
 MARKER_Z_IN_ROBOT_FRAME_MM = 0.0    # marker is on the same plane as robot's Z=0 (table)
 
 print(f"\n--- Robot to ArUco Alignment ---")
@@ -41,7 +62,16 @@ print("-------------------------------------------\n")
 HC05_MAC_ADDRESS = "98:DA:50:03:A4:B5"
 BLUETOOTH_PORT = 1
 
-detected_class = 0
+PHONE_MAC = "1C:F8:D0:B6:07:BC"
+PORT = 2 
+
+was_data_sent = False
+
+system_start_lock = threading.Lock()
+system_start = 0 
+
+connected_client_socket = None
+connection_ready_event = threading.Event()
 
 # --- Initialize ObjectDetector ---
 try:
@@ -68,90 +98,187 @@ bt_sender = BraccioBluetoothSender(
     port=BLUETOOTH_PORT
 )
 
-# --- Braccio Robot Control Function ---
-def move_braccio_to_coordinates(x_mm, y_mm, z_mm):
-    print(f"\n--- BRACCIO ROBOT CONTROL ---")
-    print(f"Attempting to reach target: X={x_mm:.0f}mm, Y={y_mm:.0f}mm, Z={z_mm:.0f}mm")
+server = AndroidBluetoothServer(
+    port=PORT,
+    expected_mac_address=PHONE_MAC
+)
 
-    # Use the Kinematics Solver to get joint angles
-    joint_angles = braccio_solver.calculate_joint_angles(x_mm, y_mm, z_mm)
+
+# --- Braccio Robot Control Function ---
+def move_braccio_to_coordinates(x_target_robot_frame_mm, y_target_robot_frame_mm, z_target_robot_frame_mm, detected_class=1):
+    print(f"\n--- BRACCIO ROBOT CONTROL ---")
+    print(f"Attempting to reach target (Robot Frame): X={x_target_robot_frame_mm:.0f}mm, Y={y_target_robot_frame_mm:.0f}mm, Z={z_target_robot_frame_mm:.0f}mm")
+
+    joint_angles = braccio_solver.calculate_joint_angles(x_target_robot_frame_mm, y_target_robot_frame_mm, z_target_robot_frame_mm)
+    if(joint_angles == None):
+        return 1, 1
 
     if joint_angles:
         print("Calculated Joint Angles (Degrees):")
         for joint, angle in joint_angles.items():
             print(f"  {joint.replace('_', ' ').title()}: {angle:.1f} degrees")
         
-         # --- SEND ANGLES OVER BLUETOOTH ---
+        # --- SEND ANGLES OVER BLUETOOTH ---
         if bt_sender.sock:
             bt_sender.send_angles(
                 base_angle=joint_angles['base'],
                 shoulder_angle=joint_angles['shoulder'],
                 elbow_angle=joint_angles['elbow'],
-                wrist_v_angle=joint_angles['wrist_v'],
-                wrist_r_angle=joint_angles['wrist_r'],
-                gripper_angle=joint_angles['gripper'],
                 obj_class=detected_class
             )
+            print("Data sent")
         else:
             print("Bluetooth not connected. Angles not sent.")
-
+        
+        
     else:
-        print("Target is unreachable or angles could not be calculated.")
-    print("--- END BRACCIO ROBOT CONTROL ---")
-
-# --- Main Program Loop ---
-def main():
-    cap = cv2.VideoCapture(0)
-
-    if not cap.isOpened():
-        print("Error: Could not open webcam.")
-        print("Please ensure your webcam is connected and not in use by another application.")
-        return
-
-    print("\n--- Starting Main Application Loop ---")
-    print("Press 'q' to quit. Press 'm' to attempt a robot move to the first detected Red Block.")
+        print("Target is unreachable or angles could not be calculated. No angles sent via Bluetooth.")
     print("-------------------------------------------\n")
+    return 0, 0
 
-    while True:
-        bt_connected = bt_sender.connect()
-        if not bt_connected:
-            print("WARNING: Bluetooth connection failed. Robot control commands will not be sent.")
-            exit() 
+def get_coords(obj):
+    obj_y_from_marker = obj['rel_3d_from_aruco_mm'][1]
+    obj_x_from_marker = obj['rel_3d_from_aruco_mm'][0]
+    obj_z_from_marker = obj['rel_3d_from_aruco_mm'][2]
+                    
+    # Convert object coordinates relative to marker to robot base frame
+    # target_x_robot = obj_x_from_marker
+    target_x_robot = MARKER_X_IN_ROBOT_FRAME_MM + obj_x_from_marker
+    target_y_robot = MARKER_Y_IN_ROBOT_FRAME_MM + obj_y_from_marker
+    target_z_robot = MARKER_Z_IN_ROBOT_FRAME_MM + obj_z_from_marker
+                    
+    return (target_x_robot, target_y_robot, target_z_robot)
 
-        ret, frame = cap.read()
-        if not ret:
-            print("Failed to grab frame. Exiting...")
-            break
+def camera():
+    global data
+    global detected_colour
 
-        # Process the frame using the ObjectDetector library
-        display_frame, aruco_data, detected_objects = detector.process_frame(frame)
-
-        # --- Display the processed frame ---
-        cv2.imshow("Real-Time Object Detection for Braccio Control", display_frame)
-
-        # --- Braccio Robot Control Logic (Example: Move to a Red Block) ---
-        first_red_block_coords = None
-        for obj in detected_objects:
-            if obj['color_name'] == "Red Block" and obj['rel_3d_from_aruco_mm'] is not None:
-                first_red_block_coords = obj['rel_3d_from_aruco_mm']
+    try:
+        while True:
+            # Capture frame from Picamera2's main stream as a NumPy array (BGR format)
+            frame = picam2.capture_array("main")
+            
+            if frame is None:
+                print("Failed to grab frame. Exiting...")
                 break
 
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            break
-        elif key == ord('m'):
-            if first_red_block_coords:
-                move_braccio_to_coordinates(
-                    x_mm=first_red_block_coords[0],
-                    y_mm=first_red_block_coords[1],
-                    z_mm=first_red_block_coords[2]
-                )
-            else:
-                print("\nNo Red Block detected with valid 3D coordinates to move to.")
+            # Process the frame using the ObjectDetector library
+            display_frame, aruco_data, detected_objects = detector.process_frame(frame)
 
-    cap.release()
-    cv2.destroyAllWindows()
-    print("Main application loop finished.")
+            # --- Display the processed frame ---
+            # This requires a GUI environment and the necessary Qt/XCB libraries.
+            # If you encounter 'qt.qpa.plugin: Could not load the Qt platform plugin "xcb"' errors,
+            # you need to install those libraries (as discussed in previous interactions).
+            cv2.imshow("Real-Time Object Detection for Braccio Control", display_frame)
+
+            # --- Braccio Robot Control Logic (Example: Move to a Red Block) ---
+            detected_block = [0,0,0]
+            detected_colour = 0                                                           
+            if(len(detected_objects) != 0):
+                if detected_objects[0]['color_name'] == "Red Block" and detected_objects[0]['rel_3d_from_aruco_mm'] is not None:
+                    detected_block = get_coords(detected_objects[0])
+                    detected_colour = 0
+                elif detected_objects[0]['color_name'] == "Pink Block" and detected_objects[0]['rel_3d_from_aruco_mm'] is not None:
+                    detected_block = get_coords(detected_objects[0])
+                    detected_colour = 1
+                elif detected_objects[0]['color_name'] == "Blue Block" and detected_objects[0]['rel_3d_from_aruco_mm'] is not None:
+                    detected_block = get_coords(detected_objects[0])
+                    detected_colour = 2
+                elif detected_objects[0]['color_name'] == "Yellow Block" and detected_objects[0]['rel_3d_from_aruco_mm'] is not None:
+                    detected_block = get_coords(detected_objects[0])
+                    detected_colour = 3
+
+            if(system_start):    
+                if(data):
+                    was_data_sent, data = move_braccio_to_coordinates(
+                        x_target_robot_frame_mm=detected_block[0],
+                        y_target_robot_frame_mm=detected_block[1],
+                        z_target_robot_frame_mm=detected_block[2],
+                        detected_class = detected_colour
+                    )
+                
+                if not was_data_sent:
+                    if client_sock:
+                        msg = str(detected_colour) + "\n"
+                        server.send_data(client_sock, msg)
+                        print(f"Sent {msg} to android app!")
+                        was_data_sent = True
+
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                break   
+
+        
+
+    except Exception as e:
+        print(f"An error occurred during script execution: {e}")
+    finally:
+        # --- Cleanup ---
+        picam2.stop() # Stop the camera gracefully
+        cv2.destroyAllWindows()
+        if bt_connected:
+            bt_sender.disconnect()
+        print("Main application loop finished.")
+
+def ready():
+    global data
+    while True:
+        data = bt_sender.receive_ready()
+        if(data):
+            # ready_event.set()
+            print("Received ready!")
+
+def android_receive():
+    global system_start # Declare intent to modify global variable
+    global client_sock
+    if client_sock:
+        print("\nReady to receive data from the Android app. Press Ctrl+C to stop receiving.")
+        try:
+            while True:
+                received_data = server.receive_data(client_sock)
+                if received_data:
+                    try:
+                        received_int_data = int(received_data)
+                        with system_start_lock:
+                            system_start = received_int_data
+                        print(f"System start flag updated to: {system_start}")
+                    except ValueError:
+                        print(f"Warning: Received non-integer data for system_start: '{received_data}'")
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            print("\nReceiver communication interrupted by user.")
+        except Exception as e:
+            print(f"Error during receiving: {e}")
+        finally:
+            print("Receive loop finished.")
+    else:
+        print("ERROR: Client socket not available for receiving.")
 
 if __name__ == "__main__":
-    main()
+    
+    # Give camera time to warm up and auto-adjust exposure
+    time.sleep(2)
+
+    print("\n--- Starting Main Application Loop ---")
+    
+    bt_connected = bt_sender.connect()
+    if not bt_connected:
+        print("WARNING: Bluetooth connection failed. Robot control commands will not be sent.")
+
+    if server.start_server():
+        client_sock, client_addr = server.accept_connection()
+        if not client_sock:
+            print("WARNING: Bluetooth connection to android app failed. Colour data will not be sent.")
+        else:
+            print(f"Connection established and ready for communication.")
+
+
+    t1 = threading.Thread(target=camera)
+    t2 = threading.Thread(target=ready, daemon=True) 
+    t3 = threading.Thread(target=android_receive, daemon=True)
+
+    t1.start()
+    t2.start()
+    t3.start()
+
+    t1.join()
