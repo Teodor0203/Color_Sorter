@@ -2,6 +2,6 @@
 ../Core/Src/arm.c:21:6:Init_arm	1
 ../Core/Src/arm.c:54:6:MoveArm	14
 ../Core/Src/arm.c:139:6:pick_up_object	1
-../Core/Src/arm.c:155:9:detect_object_zone	5
-../Core/Src/arm.c:163:6:return_to_init_position	1
-../Core/Src/arm.c:168:6:move_to_pile	5
+../Core/Src/arm.c:162:9:detect_object_zone	5
+../Core/Src/arm.c:170:6:return_to_init_position	1
+../Core/Src/arm.c:175:6:move_to_pile	5

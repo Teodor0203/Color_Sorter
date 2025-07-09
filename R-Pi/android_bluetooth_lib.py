@@ -4,19 +4,7 @@ import bluetooth
 import numpy as np
 
 class AndroidBluetoothServer:
-    """
-    Handles Bluetooth server-side operations, allowing a Raspberry Pi
-    to accept connections from a Bluetooth client (e.g., an Android app).
-    """
     def __init__(self, port=1, backlog=1, expected_mac_address=None):
-        """
-        Initializes the Bluetooth server.
-        :param port: The RFCOMM port to listen on.
-        :param backlog: The maximum number of queued connections.
-        :param expected_mac_address: If provided, the server will only keep
-                                     the connection open for this MAC address
-                                     and stop listening afterwards. Format: "XX:XX:XX:XX:XX:XX"
-        """
         self.port = port
         self.backlog = backlog
         self.expected_mac_address = expected_mac_address.upper() if expected_mac_address else None
@@ -31,27 +19,17 @@ class AndroidBluetoothServer:
 
 
     def start_server(self):
-        """
-        Starts the Bluetooth server socket and begins listening for connections.
-        Returns True on success, False otherwise.
-        """
         if self.server_sock:
             print("Server socket already active.")
             return True
 
         try:
             self.server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-            # Bind to an empty string to listen on all available Bluetooth interfaces
             self.server_sock.bind(("", self.port))
             self.server_sock.listen(self.backlog)
             self.is_listening = True
             print(f"Bluetooth server started and listening on port {self.port}...")
             return True
-        except bluetooth.btcommon.BluetoothError as e:
-            print(f"Bluetooth server error during start: {e}")
-            self.server_sock = None
-            self.is_listening = False
-            return False
         except Exception as e:
             print(f"An unexpected error occurred during server start: {e}")
             self.server_sock = None
@@ -59,46 +37,35 @@ class AndroidBluetoothServer:
             return False
 
     def accept_connection(self):
-
         if not self.server_sock:
             print("ERROR: Server not started. Cannot accept connections.")
             return None, None
 
-        print("Waiting for an Android app to connect...")
+        print("Waiting for the Android App to connect...")
         try:
             while not self.stop_event.is_set():
-                # Use select.select instead of bluetooth.select
-                ready_to_read, _, _ = select.select([self.server_sock], [], [], 1) # Timeout of 1 second
+                ready_to_read, _, _ = select.select([self.server_sock], [], [], 1) # select socket
                 if ready_to_read:
                     new_client_sock, new_client_info = self.server_sock.accept()
-                    connected_mac = new_client_info[0].upper() # Extract MAC address and convert to uppercase
+                    connected_mac = new_client_info[0].upper() # Extract MAC address
 
                     if self.expected_mac_address and connected_mac != self.expected_mac_address:
                         print(f"Rejected connection from {connected_mac}. Expected: {self.expected_mac_address}")
                         new_client_sock.close() # Close unwanted connection
-                        continue # Continue waiting for the correct MAC
+                        continue                # Continue waiting for the correct MAC
                     else:
                         self.client_sock = new_client_sock
                         self.client_info = new_client_info
                         print(f"Accepted connection from {self.client_info}")
-                        # If an expected MAC was set and matched, or no specific MAC was expected,
-                        # stop listening for further connections immediately after the first valid one.
                         if self.expected_mac_address:
                             print(f"Specific MAC {self.expected_mac_address} connected. Stopping server listen.")
-                            # Only stop the server_sock (listening socket), not the client_sock
-                            # The client_sock will be managed by the main loop or error handling.
                             self.stop_event.set()
                             if self.server_sock:
                                 self.server_sock.close()
                                 self.is_listening = False
                         return self.client_sock, self.client_info
             print("Server stop event received, not accepting further connections.")
-            return None, None # Return None if stopping due to stop_event
-        except bluetooth.btcommon.BluetoothError as e:
-            print(f"Bluetooth server error during accept: {e}")
-            self.client_sock = None
-            self.client_info = None
-            return None, None
+            return None, None 
         except Exception as e:
             print(f"An unexpected error occurred during connection acceptance: {e}")
             self.client_sock = None
@@ -106,12 +73,6 @@ class AndroidBluetoothServer:
             return None, None
 
     def send_data(self, client_socket, data):
-        """
-        Sends raw string data to a connected client.
-        :param client_socket: The socket object of the connected client.
-        :param data: The string data to send.
-        Returns True on success, False otherwise.
-        """
         if not client_socket:
             print("ERROR: No client socket provided to send data.")
             return False
@@ -119,27 +80,12 @@ class AndroidBluetoothServer:
             client_socket.send(data.encode('utf-8'))
             print(f"Sent BT data to client {self.client_info}: '{data.strip()}'")
             return True
-        except bluetooth.btcommon.BluetoothError as e:
-            print(f"Bluetooth send error to client {self.client_info}: {e}. Connection lost?")
-            self.close_client_connection(client_socket)
-            return False
         except Exception as e:
             print(f"An unexpected error occurred during data send: {e}")
             self.close_client_connection(client_socket)
             return False
 
     def send_angles(self, client_socket, base_angle, shoulder_angle, elbow_angle, obj_class=0):
-        """
-        Formats and sends Braccio arm angles (and an optional object class)
-        to a connected client.
-        Angles are clipped to [0, 180] and formatted with leading zeros.
-        :param client_socket: The socket object of the connected client.
-        :param base_angle: Angle for the base motor.
-        :param shoulder_angle: Angle for the shoulder motor.
-        :param elbow_angle: Angle for the elbow motor.
-        :param obj_class: Optional integer for object class (0-9).
-        Returns True on success, False otherwise.
-        """
         if not client_socket:
             print("ERROR: No client socket provided to send angles.")
             return False
@@ -164,22 +110,12 @@ class AndroidBluetoothServer:
             client_socket.send(data_string.encode('utf-8'))
             print(f"Sent BT angles to client {self.client_info}: '{data_string.strip()}'")
             return True
-        except bluetooth.btcommon.BluetoothError as e:
-            print(f"Bluetooth send error to client {self.client_info}: {e}. Connection lost?")
-            self.close_client_connection(client_socket)
-            return False
         except Exception as e:
             print(f"An unexpected error occurred during angle send: {e}")
             self.close_client_connection(client_socket)
             return False
 
     def receive_data(self, client_socket, buffer_size=1024):
-        """
-        Receives data from a connected client.
-        :param client_socket: The socket object of the connected client.
-        :param buffer_size: The maximum amount of data to be received at once.
-        Returns the decoded data string, or empty string on error/no data.
-        """
         if not client_socket:
             print("ERROR: No client socket provided to receive data.")
             return ""
@@ -188,19 +124,12 @@ class AndroidBluetoothServer:
             if data:
                 print(f"Received BT data from client {self.client_info}: '{data}'")
             return data
-        except bluetooth.btcommon.BluetoothError as e:
-            print(f"Bluetooth receive error from client {self.client_info}: {e}. Connection lost?")
-            self.close_client_connection(client_socket)
-            return ""
         except Exception as e:
             print(f"An unexpected error occurred during data receive: {e}")
             self.close_client_connection(client_socket)
             return ""
 
     def close_client_connection(self, client_socket):
-        """
-        Closes a specific client connection.
-        """
         if client_socket:
             print(f"Closing client connection {self.client_info}.")
             try:
@@ -217,14 +146,10 @@ class AndroidBluetoothServer:
     def stop_server(self):
         print("Signaling server to stop...")
         self.stop_event.set() # Set the event to break out of accept_connection loop
-        # Removed client_sock closing here, as it should be managed by the main loop
-        # or other error handling. This method should only stop accepting new connections.
         if self.server_sock:
             print("Closing server Bluetooth socket.")
             try:
                 self.server_sock.close()
-            except Exception as e:
-                print(f"Error closing server Bluetooth socket: {e}")
             finally:
                 self.server_sock = None
                 self.is_listening = False

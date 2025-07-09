@@ -1,6 +1,5 @@
 import bluetooth
 import numpy as np
-import sys 
 
 class BraccioBluetoothSender:
     def __init__(self, mac_address, port=1):
@@ -20,17 +19,6 @@ class BraccioBluetoothSender:
             self.sock.connect((self.mac_address, self.port))
             print("Successfully connected to HC-05!")
             return True
-        except bluetooth.btcommon.BluetoothError as e:
-            if "Connection refused" in str(e):
-                print(f"Bluetooth connection error: Connection refused. Is the HC-05 paired and powered on?")
-            elif "Host is down" in str(e) or "No route to host" in str(e):
-                print(f"Bluetooth connection error: HC-05 not found or out of range. Check power and proximity.")
-            elif sys.platform.startswith('linux') and "[Errno 112]" in str(e):
-                print(f"Bluetooth connection error (Linux): Device not ready or already in use. Try `sudo rfcomm release hci0` or `sudo systemctl restart bluetooth`")
-            else:
-                print(f"Bluetooth connection error: {e}")
-            self.sock = None
-            return False
         except Exception as e:
             print(f"An unexpected error occurred during Bluetooth connection: {e}")
             self.sock = None
@@ -51,10 +39,9 @@ class BraccioBluetoothSender:
         if elbow_angle_int <= 15:
             shoulder_angle_int += 10 
         
-        # Ensure class is a single digit
         obj_class_int = int(np.clip(round(obj_class), 0, 9))
 
-        # Format the data string with leading zeros for fixed length
+        # Format the data string for fixed length
         data_string = (
             f"{base_angle_int:03d},"
             f"{shoulder_angle_int:03d},"
@@ -66,10 +53,6 @@ class BraccioBluetoothSender:
             self.sock.send(data_string.encode('utf-8'))
             print(f"Sent BT data: '{data_string.strip()}'")
             return True
-        except bluetooth.btcommon.BluetoothError as e:
-            print(f"Bluetooth send error: {e}. Connection lost?")
-            self.disconnect()
-            return False
         except Exception as e:
             print(f"An unexpected error occurred during Bluetooth send: {e}")
             self.disconnect()
@@ -80,7 +63,6 @@ class BraccioBluetoothSender:
         return data
 
     def disconnect(self):
-        """Closes the Bluetooth connection if it's open."""
         if self.sock:
             print("Closing Bluetooth socket.")
             try:

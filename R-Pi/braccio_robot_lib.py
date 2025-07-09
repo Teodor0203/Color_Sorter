@@ -2,21 +2,12 @@ import numpy as np
 
 class BraccioKinematicsSolver:
     def __init__(self):
-        # --- Robot Link Lengths (MEASURE YOUR ROBOT CAREFULLY!) ---
-        # L0: Height from base rotation axis to shoulder joint pivot
-        self.L0 = 71.5 # Example: Height of the base servo block
-
-        # L1: Length of the shoulder joint to elbow joint
-        self.L1 = 125.0 # mm
-
-        # L2: Length of the elbow joint to wrist vertical joint
-        self.L2 = 125.0 # mm
-
-        # L3: Length from wrist vertical joint to the gripper's end point
-        self.L3 = 192.0 # mm
+        self.L0 = 71.5 # base height
+        self.L1 = 125.0 # shoulder length
+        self.L2 = 125.0 # elbow lenght
+        self.L3 = 192.0 # wrist length
 
         print("\n--- Braccio Kinematics Solver Initialized ---")
-        print("!!! WARNING: Please ensure LINK_LENGTHS_MM in braccio_robot_lib.py are accurate for YOUR Braccio robot. !!!")
         print(f"L0 (Base Height): {self.L0} mm")
         print(f"L1 (Bicep): {self.L1} mm")
         print(f"L2 (Forearm): {self.L2} mm")
@@ -31,25 +22,28 @@ class BraccioKinematicsSolver:
         if x == 0 or y == 0:
             return None
             
-        # --- 1. Calculate Base (Waist) Angle (Servo 0) ---
+        # --- 1. Calculate Base Angle (M0) ---
         base_angle_rad = np.arctan2(y, x)
         base_angle_deg = np.degrees(base_angle_rad)
 
-        # Adjust angle to Braccio's servo range (typically 0-180, 90 is center/forward)
-        # Assuming 90 deg for straight forward, 0 for left, 180 for right.
-        base_servo_angle = 90 - base_angle_deg # Example mapping
+        base_servo_angle = 90 - base_angle_deg
+
         if not (0 <= base_servo_angle <= 180):
             print(f"WARNING: Base angle {base_servo_angle:.1f}deg out of typical 0-180 range. Clamping.")
             base_servo_angle = np.clip(base_servo_angle, 0, 180)
 
+        # if base_servo_angle < 80:
+        #     base_servo_angle += 10
+        # else:
+        #     base_servo_angle -= 10
+
 
         # --- 2. Calculate Effective Target for Shoulder and Elbow (2D Planar Arm) ---
-        # Horizontal distance from base pivot to target projection on X-Y plane
+        # Horizontal distance from base to target projection on X-Y plane
         R = np.sqrt(x**2 + y**2)
 
         z_eff = z + self.L3 - self.L0 # The target for the wrist joint (L3 is length from wrist to gripper tip)
 
-        # Ensure R is positive to avoid issues with np.sqrt, handle if target is at base origin
         if R < 1e-6: # Very close to base center
             R = 0 # Treat as 0 to simplify
             if abs(z_eff) < 1e-6:
@@ -58,7 +52,7 @@ class BraccioKinematicsSolver:
         # Total straight-line distance from shoulder joint to wrist_v joint
         D = np.sqrt(R**2 + z_eff**2) 
 
-        # Check reachability
+        # Check if in reach
         if D > (self.L1 + self.L2 + 30) or D < (abs(self.L1 - self.L2) + 30):
             print(f"ERROR: Target ({x:.1f},{y:.1f},{z:.1f}) mm is unreachable. D={D:.1f} mm, Max Reach={self.L1 + self.L2:.1f} mm.")
             return None
@@ -83,20 +77,18 @@ class BraccioKinematicsSolver:
             print("WARNING: Arccos input out of range for shoulder-D. Clamped.")
             return None
 
-        # Angle of the line D with the horizontal (R-axis)
+        # Angle of the line D with the horizontal
         alpha_rad = np.arctan2(z_eff, R)
 
-        # Shoulder (Bicep) Angle (Servo 1)
+        # Shoulder Angle (M1)
         shoulder_angle_rad = alpha_rad + shoulder_angle_D_rad
         shoulder_angle_deg = np.degrees(shoulder_angle_rad)
 
-        # Elbow (Forearm) Angle (Servo 2)
-        # Assuming 0deg is fully extended and 180deg is fully bent.
-        elbow_angle_deg = np.degrees(elbow_angle_rad) # This is the internal angle of the triangle at the elbow
+        # Elbow Angle (M2)
+        elbow_angle_deg = np.degrees(elbow_angle_rad)
 
-        # --- 4. Map to Braccio Servo Angles (0-180 degrees) ---
+        # --- 4. Map to Braccio Servo Angles ---
         shoulder_servo_angle = shoulder_angle_deg - 5
-
         elbow_servo_angle = elbow_angle_deg - 90
 
         # --- 5. Apply Joint Limits (Braccio-specific limits) ---
@@ -117,54 +109,3 @@ class BraccioKinematicsSolver:
         }
         
         return angles
-
-if __name__ == "__main__":
-    solver = BraccioKinematicsSolver()
-
-    print("\n--- Testing Braccio Kinematics Solver ---")
-    
-    # Target 1: A point forward and slightly to the side
-    target_x = 180  # mm
-    target_y = -100    # mm (straight forward)
-    target_z = 0   # mm (50mm above base plane)
-    print(f"\nTarget 1: X={target_x}mm, Y={target_y}mm, Z={target_z}mm")
-    angles = solver.calculate_joint_angles(target_x, target_y, target_z)
-    if angles:
-        print("Calculated Angles:", angles)
-    else:
-        print("Target 1 is unreachable.")
-
-    # Target 2: A point slightly to the side
-    target_x = 150
-    target_y = 100
-    target_z = 20
-    print(f"\nTarget 2: X={target_x}mm, Y={target_y}mm, Z={target_z}mm")
-    angles = solver.calculate_joint_angles(target_x, target_y, target_z)
-    if angles:
-        print("Calculated Angles:", angles)
-    else:
-        print("Target 2 is unreachable.")
-
-    # Target 3: An unreachable point (too far)
-    target_x = 500
-    target_y = 0
-    target_z = 50
-    print(f"\nTarget 3 (Unreachable): X={target_x}mm, Y={target_y}mm, Z={target_z}mm")
-    angles = solver.calculate_joint_angles(target_x, target_y, target_z)
-    if angles:
-        print("Calculated Angles:", angles)
-    else:
-        print("Target 3 is unreachable.")
-
-    # Target 4: A point below the base
-    target_x = 100
-    target_y = 0
-    target_z = -20
-    print(f"\nTarget 4: X={target_x}mm, Y={target_y}mm, Z={target_z}mm")
-    angles = solver.calculate_joint_angles(target_x, target_y, target_z)
-    if angles:
-        print("Calculated Angles:", angles)
-    else:
-        print("Target 4 is unreachable (or calculation failed).")
-
-    print("\nEnd of Braccio Kinematics Solver Test.")
