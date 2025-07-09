@@ -73,7 +73,6 @@ uint8_t buffer[14];
 uint8_t base_angle;
 uint8_t shoulder_angle;
 uint8_t elbow_angle;
-
 uint8_t object_colour;
 /* USER CODE END PV */
 
@@ -134,13 +133,15 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  HAL_UART_Receive_IT(&huart1, buffer, 14); // init callback function
+  HAL_UART_Receive_IT(&huart1, buffer, 14); // Init callback function
 
-  Init_arm(); // init arm
+  Init_arm(); // Init arm
 
   // prepare and send the ready signal to pi to receive object coordinates
   char msg_ready[2];
+
   strcpy(msg_ready, "1");
+
   HAL_UART_Transmit(&huart1, (uint8_t*) msg_ready, strlen(msg_ready), HAL_MAX_DELAY);
   /* USER CODE END 2 */
 
@@ -165,9 +166,11 @@ int main(void)
 
   /* Create the thread(s) */
   /* creation of bluetooth */
+
   bluetoothHandle = osThreadNew(BluetoothTask, NULL, &bluetooth_attributes);
 
   /* creation of moveRobotArm */
+
   moveRobotArmHandle = osThreadNew(MoveRobotArmTask, NULL, &moveRobotArm_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -190,8 +193,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
-
   }
   /* USER CODE END 3 */
 }
@@ -537,31 +538,35 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-	if (huart->Instance == USART1) {
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if (huart->Instance == USART1)
+	{
 		char temp_buffer[14];
 		strcpy(temp_buffer, buffer); // copy received coords into string
 
-		char *token; // extract coods from string
+		char *token; // extract coords from string
 		token = strtok(temp_buffer, ",");
-		if (token != NULL) {
+		if (token != NULL)
+		{
 			base_angle = atoi(token);
 	    }
 
 		token = strtok(NULL, ",");
-		if (token != NULL) {
+		if (token != NULL)
+		{
 			shoulder_angle = atoi(token);
 		}
 
 		token = strtok(NULL, ",");
-		if (token != NULL) {
+		if (token != NULL)
+		{
 			elbow_angle = atoi(token);
-//			if(elbow_angle >= 10)
-//				elbow_angle -= 10;
 		}
 
 		token = strtok(NULL, ",");
-		if (token != NULL) {
+		if (token != NULL)
+		{
 			object_colour = atoi(token);
 		}
 

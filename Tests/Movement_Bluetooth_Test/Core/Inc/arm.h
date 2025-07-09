@@ -39,13 +39,18 @@ extern TIM_HandleTypeDef htim4;
 #define INIT_FOLD_WRIST_HOR 90
 
 void Init_arm(void);
+
 void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle,
              uint8_t wrist_ver_angle, uint8_t wrist_rot_angle, uint8_t gripper_angle);
+
 void Set_Servo_Angle(TIM_HandleTypeDef *htim, uint32_t channel, uint8_t angle);
 
 void pick_up_object(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, uint8_t colour);
+
 uint8_t detect_object_zone(uint8_t shoulder_angle);
+
 void return_to_init_position();
+
 void move_to_pile(uint8_t colour);
 
 #endif /* INC_ARM_H_ */

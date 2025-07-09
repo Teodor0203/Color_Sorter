@@ -8,10 +8,6 @@ static uint8_t current_value_wrist_ver = 90;
 static uint8_t current_value_wrist_rot = 90;
 static uint8_t current_value_gripper = 40;
 
-//TIM_HandleTypeDef htim2;
-//TIM_HandleTypeDef htim3;
-//TIM_HandleTypeDef htim4;
-
 void Set_Servo_Angle(TIM_HandleTypeDef *htim, uint32_t channel, uint8_t angle)
 {
     uint32_t pulse_length = 210 + (angle * (1050 - 210) / 180);
@@ -47,8 +43,6 @@ void Init_arm()
 
 	Set_Servo_Angle(&htim2, TIM_CHANNEL_2, current_value_gripper);
 	HAL_Delay(200);
-//	MoveArm(INIT_FOLD_BASE, INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, INIT_FOLD_WRIST_VER, INIT_FOLD_WRIST_HOR, GRIPPER_OPPENED);
-//	osDelay(200);
 }
 
 void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, uint8_t wrist_ver_angle, uint8_t wrist_rot_angle, uint8_t gripper_angle)
@@ -62,9 +56,12 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
         // Wrist Vertical
         if (current_value_wrist_ver != wrist_ver_angle)
         {
-            if (current_value_wrist_ver < wrist_ver_angle) {
+            if (current_value_wrist_ver < wrist_ver_angle)
+            {
                 current_value_wrist_ver++;
-            } else {
+            }
+            else
+            {
                 current_value_wrist_ver--;
             }
             Set_Servo_Angle(&htim2, TIM_CHANNEL_3, current_value_wrist_ver);
@@ -74,9 +71,12 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
         // Base
         if (current_value_base != base_angle)
         {
-            if (current_value_base < base_angle) {
+            if (current_value_base < base_angle)
+            {
                 current_value_base++;
-            } else {
+            }
+            else
+            {
                 current_value_base--;
             }
             Set_Servo_Angle(&htim2, TIM_CHANNEL_1, current_value_base);
@@ -86,9 +86,12 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
         // Shoulder
         if (current_value_shoulder != shoulder_angle)
         {
-            if (current_value_shoulder < shoulder_angle) {
+            if (current_value_shoulder < shoulder_angle)
+            {
                 current_value_shoulder++;
-            } else {
+            }
+            else
+            {
                 current_value_shoulder--;
             }
             Set_Servo_Angle(&htim4, TIM_CHANNEL_1, current_value_shoulder);
@@ -98,9 +101,12 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
         // Elbow
         if (current_value_elbow != elbow_angle)
         {
-            if (current_value_elbow < elbow_angle) {
+            if (current_value_elbow < elbow_angle)
+            {
                 current_value_elbow++;
-            } else {
+            }
+            else
+            {
                 current_value_elbow--;
             }
             Set_Servo_Angle(&htim3, TIM_CHANNEL_2, current_value_elbow);
@@ -110,9 +116,12 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
         // Wrist Rotation
         if (current_value_wrist_rot != wrist_rot_angle)
         {
-            if (current_value_wrist_rot < wrist_rot_angle) {
+            if (current_value_wrist_rot < wrist_rot_angle)
+            {
                 current_value_wrist_rot++;
-            } else {
+            }
+            else
+            {
                 current_value_wrist_rot--;
             }
             Set_Servo_Angle(&htim3, TIM_CHANNEL_1, current_value_wrist_rot);
@@ -122,9 +131,12 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
         // Gripper
         if (current_value_gripper != gripper_angle)
         {
-            if (current_value_gripper < gripper_angle) {
+            if (current_value_gripper < gripper_angle)
+            {
                 current_value_gripper++;
-            } else {
+            }
+            else
+            {
                 current_value_gripper--;
             }
             Set_Servo_Angle(&htim2, TIM_CHANNEL_2, current_value_gripper);
@@ -136,7 +148,8 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
 }
 
 // object pick-up routine
-void pick_up_object(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, uint8_t colour){
+void pick_up_object(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, uint8_t colour)
+{
 	uint8_t detected_grab_angle = detect_object_zone(shoulder_angle);                                         // detect object zone
 
 	MoveArm(base_angle, shoulder_angle, elbow_angle, WRIST_RAISED_ANGLE,  WRIST_ROT_ANGLE, GRIPPER_OPPENED ); // move to object
@@ -159,6 +172,7 @@ void pick_up_object(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_an
 // 3 zones defined: far zone    (      shoulder_ang e <= 35 )
 //                  middle zone ( 35 < shoulder_angle <= 45 )
 //                  near zone   ( 45 < shoulder_angle
+<<<<<<< Updated upstream
 uint8_t detect_object_zone(uint8_t shoulder_angle){
 	if(shoulder_angle <= 35) return WRIST_GRAB_ANGLE       ; else
 	if(shoulder_angle <= 45) return WRIST_GRAB_ANGLE_ZONE_2; else
@@ -169,35 +183,71 @@ uint8_t detect_object_zone(uint8_t shoulder_angle){
 
 void return_to_init_position(){
 	MoveArm(INIT_FOLD_BASE, INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE, INIT_FOLD_WRIST_HOR, GRIPPER_OPPENED);
+=======
+
+uint8_t detect_object_zone(uint8_t shoulder_angle)
+{
+	if(shoulder_angle <= 35)
+	{
+		return WRIST_GRAB_ANGLE;
+	}
+    else if(shoulder_angle <= 45)
+    {
+    	return WRIST_GRAB_ANGLE_ZONE_2;
+    }
+    else if(shoulder_angle <= 55)
+    {
+    	return WRIST_GRAB_ANGLE_ZONE_1;
+    }
+    else if(shoulder_angle <= 65)
+    {
+    	return WRIST_GRAB_ANGLE_ZONE_0;
+    }
+    else
+    {
+    	return WRIST_GRAB_ANGLE_UNDER ;
+    }
+}
+
+void return_to_init_position()
+{
+	MoveArm(INIT_FOLD_BASE, INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, INIT_FOLD_WRIST_VER, INIT_FOLD_WRIST_HOR, GRIPPER_CLOSED);
+>>>>>>> Stashed changes
 }
 
 // moves the object to its designated pile
-void move_to_pile(uint8_t colour){
-	switch (colour){
+void move_to_pile(uint8_t colour)
+{
+	switch (colour)
+	{
 		case 0:
 			MoveArm(BASE_LEFT_PILE, INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE, INIT_FOLD_WRIST_HOR, GRIPPER_CLOSED  ); // go to left pile
 			MoveArm(BASE_LEFT_PILE, SHOULDER_NEAR_PILE, ELBOW_NEAR_PILE, WRIST_NEAR_PILE,     WRIST_ROT_ANGLE,     GRIPPER_CLOSED  ); // get arm into position
 			MoveArm(BASE_LEFT_PILE, SHOULDER_NEAR_PILE, ELBOW_NEAR_PILE, WRIST_NEAR_PILE,     WRIST_ROT_ANGLE,     GRIPPER_OPPENED ); // release object
 			MoveArm(BASE_LEFT_PILE, INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE, INIT_FOLD_WRIST_HOR, GRIPPER_OPPENED);
 			break;
+
 		case 1:
 			MoveArm(BASE_LEFT_PILE, INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE, INIT_FOLD_WRIST_HOR, GRIPPER_CLOSED  ); // go to left pile
 			MoveArm(BASE_LEFT_PILE, SHOULDER_FAR_PILE,  ELBOW_FAR_PILE,  WRIST_NEAR_PILE,  WRIST_ROT_ANGLE,     GRIPPER_CLOSED  ); // get arm into position
 			MoveArm(BASE_LEFT_PILE, SHOULDER_FAR_PILE,  ELBOW_FAR_PILE,  WRIST_FAR_PILE,      WRIST_ROT_ANGLE,     GRIPPER_OPPENED ); // release object
 			MoveArm(BASE_LEFT_PILE,INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE, INIT_FOLD_WRIST_HOR,GRIPPER_OPPENED);
 			break;
+
 		case 2:
 			MoveArm(BASE_RIGHT_PILE, INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE, INIT_FOLD_WRIST_HOR, GRIPPER_CLOSED  ); // go to blue pile
 			MoveArm(BASE_RIGHT_PILE, SHOULDER_NEAR_PILE, ELBOW_NEAR_PILE, WRIST_NEAR_PILE,  WRIST_ROT_ANGLE,     GRIPPER_CLOSED  ); // get arm into position
 			MoveArm(BASE_RIGHT_PILE, SHOULDER_NEAR_PILE, ELBOW_NEAR_PILE, WRIST_NEAR_PILE,     WRIST_ROT_ANGLE,     GRIPPER_OPPENED ); // release object
 			MoveArm(BASE_RIGHT_PILE,INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE, INIT_FOLD_WRIST_HOR,GRIPPER_OPPENED);
 			break;
+
 		case 3:
 			MoveArm(BASE_RIGHT_PILE, INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE, INIT_FOLD_WRIST_HOR, GRIPPER_CLOSED  ); // go to yellow pile
 			MoveArm(BASE_RIGHT_PILE, SHOULDER_FAR_PILE,  ELBOW_FAR_PILE,  WRIST_NEAR_PILE,  WRIST_ROT_ANGLE,     GRIPPER_CLOSED  ); // get arm into position
 			MoveArm(BASE_RIGHT_PILE, SHOULDER_FAR_PILE,  ELBOW_FAR_PILE,  WRIST_FAR_PILE,      WRIST_ROT_ANGLE,     GRIPPER_OPPENED ); // release object
 			MoveArm(BASE_RIGHT_PILE,INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE, INIT_FOLD_WRIST_HOR,GRIPPER_OPPENED);
 			break;
+
 		default:
 			break;
 	}
