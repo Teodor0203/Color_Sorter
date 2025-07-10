@@ -148,42 +148,23 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, ui
 }
 
 // object pick-up routine
-void pick_up_object(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, uint8_t colour)
+bool pick_up_object(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, uint8_t colour)
 {
 	uint8_t detected_grab_angle = detect_object_zone(shoulder_angle);                                         // detect object zone
 
 	MoveArm(base_angle, shoulder_angle, elbow_angle, WRIST_RAISED_ANGLE,  WRIST_ROT_ANGLE, GRIPPER_OPPENED ); // move to object
-//	osDelay(15);
 	MoveArm(base_angle, shoulder_angle, elbow_angle, detected_grab_angle, WRIST_ROT_ANGLE, GRIPPER_OPPENED ); // lower arm
-//	osDelay(15);
 	MoveArm(base_angle, shoulder_angle, elbow_angle, detected_grab_angle, WRIST_ROT_ANGLE, GRIPPER_CLOSED  ); // grab object
-//	osDelay(15);
 	MoveArm(base_angle, shoulder_angle, elbow_angle, WRIST_RAISED_ANGLE,  WRIST_ROT_ANGLE, GRIPPER_CLOSED  ); // raise object
-//	osDelay(15);
 	MoveArm(base_angle, INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE,  WRIST_ROT_ANGLE, GRIPPER_CLOSED  ); // fold to init                                                                              // fold to initial position
-//	osDelay(15);
-	move_to_pile(colour);
-//	osDelay(15);
-	return_to_init_position();
-//	osDelay(15);
+	return move_to_pile(colour);
+
 }
 
 // check which zone the object is in
 // 3 zones defined: far zone    (      shoulder_ang e <= 35 )
 //                  middle zone ( 35 < shoulder_angle <= 45 )
 //                  near zone   ( 45 < shoulder_angle
-<<<<<<< Updated upstream
-uint8_t detect_object_zone(uint8_t shoulder_angle){
-	if(shoulder_angle <= 35) return WRIST_GRAB_ANGLE       ; else
-	if(shoulder_angle <= 45) return WRIST_GRAB_ANGLE_ZONE_2; else
-	if(shoulder_angle <= 55) return WRIST_GRAB_ANGLE_ZONE_1; else
-	if(shoulder_angle <= 75) return WRIST_GRAB_ANGLE_ZONE_0; else
-		                     return WRIST_GRAB_ANGLE_UNDER ;
-}
-
-void return_to_init_position(){
-	MoveArm(INIT_FOLD_BASE, INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE, INIT_FOLD_WRIST_HOR, GRIPPER_OPPENED);
-=======
 
 uint8_t detect_object_zone(uint8_t shoulder_angle)
 {
@@ -212,11 +193,10 @@ uint8_t detect_object_zone(uint8_t shoulder_angle)
 void return_to_init_position()
 {
 	MoveArm(INIT_FOLD_BASE, INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, INIT_FOLD_WRIST_VER, INIT_FOLD_WRIST_HOR, GRIPPER_CLOSED);
->>>>>>> Stashed changes
 }
 
 // moves the object to its designated pile
-void move_to_pile(uint8_t colour)
+bool move_to_pile(uint8_t colour)
 {
 	switch (colour)
 	{
@@ -225,6 +205,7 @@ void move_to_pile(uint8_t colour)
 			MoveArm(BASE_LEFT_PILE, SHOULDER_NEAR_PILE, ELBOW_NEAR_PILE, WRIST_NEAR_PILE,     WRIST_ROT_ANGLE,     GRIPPER_CLOSED  ); // get arm into position
 			MoveArm(BASE_LEFT_PILE, SHOULDER_NEAR_PILE, ELBOW_NEAR_PILE, WRIST_NEAR_PILE,     WRIST_ROT_ANGLE,     GRIPPER_OPPENED ); // release object
 			MoveArm(BASE_LEFT_PILE, INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE, INIT_FOLD_WRIST_HOR, GRIPPER_OPPENED);
+			return 0;
 			break;
 
 		case 1:
@@ -232,6 +213,7 @@ void move_to_pile(uint8_t colour)
 			MoveArm(BASE_LEFT_PILE, SHOULDER_FAR_PILE,  ELBOW_FAR_PILE,  WRIST_NEAR_PILE,  WRIST_ROT_ANGLE,     GRIPPER_CLOSED  ); // get arm into position
 			MoveArm(BASE_LEFT_PILE, SHOULDER_FAR_PILE,  ELBOW_FAR_PILE,  WRIST_FAR_PILE,      WRIST_ROT_ANGLE,     GRIPPER_OPPENED ); // release object
 			MoveArm(BASE_LEFT_PILE,INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE, INIT_FOLD_WRIST_HOR,GRIPPER_OPPENED);
+			return 0;
 			break;
 
 		case 2:
@@ -239,6 +221,7 @@ void move_to_pile(uint8_t colour)
 			MoveArm(BASE_RIGHT_PILE, SHOULDER_NEAR_PILE, ELBOW_NEAR_PILE, WRIST_NEAR_PILE,  WRIST_ROT_ANGLE,     GRIPPER_CLOSED  ); // get arm into position
 			MoveArm(BASE_RIGHT_PILE, SHOULDER_NEAR_PILE, ELBOW_NEAR_PILE, WRIST_NEAR_PILE,     WRIST_ROT_ANGLE,     GRIPPER_OPPENED ); // release object
 			MoveArm(BASE_RIGHT_PILE,INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE, INIT_FOLD_WRIST_HOR,GRIPPER_OPPENED);
+			return 1;
 			break;
 
 		case 3:
@@ -246,6 +229,7 @@ void move_to_pile(uint8_t colour)
 			MoveArm(BASE_RIGHT_PILE, SHOULDER_FAR_PILE,  ELBOW_FAR_PILE,  WRIST_NEAR_PILE,  WRIST_ROT_ANGLE,     GRIPPER_CLOSED  ); // get arm into position
 			MoveArm(BASE_RIGHT_PILE, SHOULDER_FAR_PILE,  ELBOW_FAR_PILE,  WRIST_FAR_PILE,      WRIST_ROT_ANGLE,     GRIPPER_OPPENED ); // release object
 			MoveArm(BASE_RIGHT_PILE,INIT_FOLD_SHOULDER, INIT_FOLD_ELBOW, WRIST_RAISED_ANGLE, INIT_FOLD_WRIST_HOR,GRIPPER_OPPENED);
+			return 1;
 			break;
 
 		default:

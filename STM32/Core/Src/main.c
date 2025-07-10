@@ -66,6 +66,7 @@ const osThreadAttr_t moveRobotArm_attributes = {
 };
 /* USER CODE BEGIN PV */
 bool is_ready = 0;
+bool compensate = 0;
 bool move_arm = 0;
 
 uint8_t buffer[14];
@@ -570,6 +571,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			object_colour = atoi(token);
 		}
 
+		if(compensate)
+			base_angle -= 10;
 		move_arm = 1; // set signal to move arm
 
 	    HAL_UART_Receive_IT(&huart1, buffer, 14); // restart the callback function
@@ -617,7 +620,7 @@ void MoveRobotArmTask(void *argument)
   for(;;){
 	  if(move_arm){                                                                   // if received coords move arm
 	  		  move_arm = 0;                                                           // reset move signal
-	  		  pick_up_object(base_angle, shoulder_angle, elbow_angle, object_colour); // pick up and sort the object
+	  		  compensate = pick_up_object(base_angle, shoulder_angle, elbow_angle, object_colour); // pick up and sort the object
 	  		  is_ready = 1;                                                           // signal arm is ready
 	  }
     osDelay(1);

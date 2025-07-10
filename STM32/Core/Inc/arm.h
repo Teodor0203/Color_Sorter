@@ -3,6 +3,7 @@
 
 #include "stm32f4xx_hal.h"
 #include "stdint.h"
+#include <stdbool.h>
 
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
@@ -21,7 +22,7 @@ extern TIM_HandleTypeDef htim4;
 #define WRIST_FAR_PILE 40
 
 #define WRIST_RAISED_ANGLE  90
-#define WRIST_GRAB_ANGLE  10
+#define WRIST_GRAB_ANGLE  8
 #define WRIST_GRAB_ANGLE_ZONE_2 23
 #define WRIST_GRAB_ANGLE_ZONE_1 32
 #define WRIST_GRAB_ANGLE_ZONE_0 35
@@ -45,12 +46,12 @@ void MoveArm(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle,
 
 void Set_Servo_Angle(TIM_HandleTypeDef *htim, uint32_t channel, uint8_t angle);
 
-void pick_up_object(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, uint8_t colour);
+bool pick_up_object(uint8_t base_angle, uint8_t shoulder_angle, uint8_t elbow_angle, uint8_t colour);
 
 uint8_t detect_object_zone(uint8_t shoulder_angle);
 
 void return_to_init_position();
 
-void move_to_pile(uint8_t colour);
+bool move_to_pile(uint8_t colour);
 
 #endif /* INC_ARM_H_ */
